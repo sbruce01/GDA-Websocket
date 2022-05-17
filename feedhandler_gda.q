@@ -67,7 +67,7 @@ bookbuilder:{[x;y]
 
 generateOrderbook:{[newOrder]
     .debug.newOrder:newOrder;
-    0N!"Starting generateOrderBook";
+    
     //create the books based on the last book state
     books:update bidbook:bookbuilder\[lastBookBySym[first sym]`bidbook;flip (side like "bid";orderID;price;size;action)],askbook:bookbuilder\[lastBookBySym[first sym]`askbook;flip (side like "ask";orderID;price;size;action)] by sym from newOrder;
 
@@ -77,13 +77,11 @@ generateOrderbook:{[newOrder]
 
     //generate the orderbook 
     books:select time,sym,bids:(value each bidbook)[;;0],bidsizes:(value each bidbook)[;;1],asks:(value each askbook)[;;0],asksizes:(value each askbook)[;;1] from books;
-    books:update bids:desc each distinct each bids,bidsizes:{sum each x group y}'[bidsizes;bids] @' desc each distinct each bids,asks:asc each distinct each asks,asksizes:{sum each x group y}'[asksizes;asks] @' asc each distinct each asks from books;
-    0N!"Ending generateOrderBook";
+    books:update bids:desc each distinct each bids,bidsizes:{sum each x group y}'[bidsizes;bids] @' desc each distinct each bids,asks:asc each distinct each asks,asksizes:{sum each x group y}'[asksizes;asks] @' asc each distinct each asks from books
     };
 
 //GDA orderbooks callback function 
 .gdaNormalised.upd:{[incoming;exchange]
-    0N!"Starting gdaNormalised.upd";
     d:.j.k incoming;.debug.gda.d:d; //0N!d;
     .debug.ordExchange:exchange;
     
@@ -113,12 +111,10 @@ generateOrderbook:{[newOrder]
 
     //publish to TP - Book
     pub[`book;books];
-    0N!"Ending gdaNormalised.upd";
     };
 
 //GDA trades callback function 
 .gdaTrades.upd:{[incoming;exchange]
-    0N!"Starting gdaTrades.upd";
     d:.j.k incoming;.debug.gda.dt:d; //0N!d;
     .debug.trdExchange:exchange;
 
@@ -141,7 +137,6 @@ generateOrderbook:{[newOrder]
 
 //bitmex trades and orders callback function 
 .bitmex.upd:{
-    0N!"Starting bitmex.upd";
     d:.j.k x;.debug.bitmex.d:d; //0N!d;
     if[`table`action`data ~ key d;
       if[d[`table] like "orderBookL2*";
@@ -183,12 +178,10 @@ generateOrderbook:{[newOrder]
           ];
       ]
     ];
-    0N!"Ending bitmex.upd";
   };
 
 //Bitfinex order books callback function 
 .bitfinex.order.upd:{
-    0N!"Starting bitfinex.order.upd";
     d:.j.k x;.debug.bitfinex.d:d; //0N!d;
 
     //capture the subscription sym
@@ -224,12 +217,10 @@ generateOrderbook:{[newOrder]
         //publish to TP - book table
         pub[`book;books]
     ];
-    0N!"Ending bitfinex.order.upd";
     };
 
 //Bitfinex trades callback function 
 .bitfinex.trade.upd:{
-    0N!"Starting bitfinex.trade.upd";
     d:.j.k x;.debug.bitfinex.dt:d; //0N!d;
 
     //capture the subscription sym
@@ -250,7 +241,6 @@ generateOrderbook:{[newOrder]
         //publish to TP - trade table
         pub[`trade;newTrade]
     ];
-    0N!"Ending bitfinex.trade.upd";
     };
 
 //establish the ws connection
