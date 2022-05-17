@@ -18,7 +18,7 @@ q r.q localhost:5000 localhost:5002 -p 5008 &
 q chainedtick.q localhost:5000 -p 5110 -t 0 &
 
 cd $BASE_DIRECTORY
-q feedhandler_gda_raw.q -p 5111 &
+q feedhandler_gda.q -p 5111 &
 
 # #cd $BASE_DIRECTORY
 # #q feedhandler.q -p 5008 
