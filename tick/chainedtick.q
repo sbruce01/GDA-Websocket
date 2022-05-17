@@ -5,7 +5,7 @@
 
 if[not system"p";system"p 5110"]
 
-\l tick/u.q
+\l u.q
 
 if[system"t";
 	 .z.ts:{.u.pub'[.u.t;value each .u.t];@[`.;.u.t;@[;`sym;`g#]0#]}; 
@@ -15,7 +15,7 @@ if[not system"t";
 	   upd:{[t;x] .u.pub[t;x];}]
 
 / get the ticker plant port, default is 5010
-.u.x:.z.x,(count .z.x)_enlist":5010"
+.u.x:.z.x,(count .z.x)_enlist":5000"
 
 / init schema 
 .u.rep:{(.[;();:;].)each x;}
