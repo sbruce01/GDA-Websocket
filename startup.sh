@@ -1,14 +1,13 @@
 #!/bin/bash
 
-BASE_DIRECTORY=$(dirname "$0")
+BASE_DIRECTORY=$(cd $(dirname $0) && pwd)
 if [ ! -d $BASE_DIRECTORY/OnDiskDB ]
 then
     echo "Creating On Disk DB ${BASE_DIRECTORY}/OnDiskDB"
     mkdir -p ${BASE_DIRECTORY}/OnDiskDB
 fi
-ON_DISK_HDB=${BASE_DIRECTORY}/OnDiskDB
-TICK_DIRECTORY=${BASE_DIRECTORY}/tick
-# WORKING_DIRECTORY=${PWD}
+ON_DISK_HDB=${BASE_DIRECTORY}/OnDiskDB/
+TICK_DIRECTORY=${BASE_DIRECTORY}/tick/
 
 cd $BASE_DIRECTORY
 q tick.q sym $ON_DISK_HDB -p 5000 &
