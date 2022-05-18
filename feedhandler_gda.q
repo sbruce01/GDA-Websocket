@@ -132,7 +132,6 @@ generateOrderbook:{[newOrder]
 
     //publish to TP - trade table
     pub[`trade;newTrade];
-    0N!"Ending gdaTrades.upd";
     };
 
 //bitmex trades and orders callback function 
