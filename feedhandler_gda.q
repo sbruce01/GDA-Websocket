@@ -20,20 +20,15 @@ sideDict:0 1 2f!`unknown`bid`ask;
 actionDict:0 1 2 3 4f!`unknown`skip`insert`remove`update;
 orderTypeDict:0 1 2f!`unknown`limitOrder`marketOrder;
 gdaExchgTopic:([]
-    topic:(`bitfinex;`bybit;`coinbase;`ftx;`huobi;`kraken;`dydx);
-    symbol:`BTCUSD`BTCUSD`BTCUSD`BTCUSD`BTCUSD`BTCUSD`BTCUSD);
+    topic:(`bitfinex;`bybit;`coinbase);
+    symbol:`BTCUSD`BTCUSD`BTCUSD);
 
 //create the ws subscription table
 hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:());
 //add all exchanges from gda
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"normalised");x;`order;`.gdaNormalised.updExchg)}each exec topic from gdaExchgTopic;
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"trades");x;`trade;`.gdaTrades.updExchg)}each exec topic from gdaExchgTopic;
-//add BitMEX websocket 
-`hostsToConnect upsert("wss://ws.bitmex.com/realtime";`op`args!("subscribe";"orderBookL2_25");`bitmex;`order;`.bitmex.upd);
-`hostsToConnect upsert("wss://ws.bitmex.com/realtime";`op`args!("subscribe";"trade");`bitmex;`trade;`.bitmex.upd);
-//add BITFINEX websocket
-`hostsToConnect upsert("wss://api-pub.bitfinex.com/ws/2";`event`channel`pair`prec!("subscribe";"book";"tETHUSD";"R0");`bitfinex;`order;`.bitfinex.order.upd);
-`hostsToConnect upsert("wss://api-pub.bitfinex.com/ws/2";`event`channel`pair`prec!("subscribe";"trades";"tETHUSD";"R0");`bitfinex;`trade;`.bitfinex.trade.upd);
+
 //add record ID
 hostsToConnect: update ws:1+til count i from hostsToConnect;
 hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from hostsToConnect where callbackFunc like "*gda*";
@@ -83,97 +78,6 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     pub[`trade;newTrade];
     };
 
-//bitmex trades and orders callback function 
-.bitmex.upd:{
-    d:.j.k x;.debug.bitmex.d:d; //0N!d;
-    if[`table`action`data ~ key d;
-      if[d[`table] like "orderBookL2*";
-          $[d[`action] like "insert";
-              [.debug.bitmex.i:d;new:select time:"n"$"Z"$timestamp,sym:`$symbol,orderID:string "j"$id,side:BuySellDict[side],price,size,action:`insert,orderType:`unknown,exchange:`bitmex from d`data];
-            d[`action] like "update";
-              [.debug.bitmex.u:d;new:select time:"n"$"Z"$timestamp,sym:`$symbol,orderID:string "j"$id,side:BuySellDict[side],price:0nf,size,action:`update,orderType:`unknown,exchange:`bitmex from d`data];
-            d[`action] like "delete";
-              [.debug.bitmex.e:d;new:select time:"n"$"Z"$timestamp,sym:`$symbol,orderID:string "j"$id,side:BuySellDict[side],price:0n,size:0n,action:`remove,orderType:`unknown,exchange:`bitmex from d`data];
-            d[`action] like "partial";
-              [.debug.bitmex.p:d;new:select time:"n"$"Z"$timestamp,sym:`$symbol,orderID:string "j"$id,side:BuySellDict[side],price:0n,size:0n,action:`partial,orderType:`unknown,exchange:`bitmex from d`data];
-                  .debug.bitmex.a:d;
-              ];
-
-          //debug variable to see new records
-          .debug.bitmex.new:new;
-          
-          //publish to TP - order table
-          pub[`order;new];
-          ];
-
-      if[d[`table] like "trade";
-          $[d[`action] like "insert";
-              [.debug.bitmex.trade.i:d;
-                newTrade:select time:"n"$"Z"$timestamp,sym:`$symbol,orderID:" ",price,tradeID:trdMatchID,side:BuySellDict[side],"f"$size,exchange:`bitmex from d`data;
-                .debug.bitmex.newTrade:newTrade;
-                pub[`trade;newTrade]
-                ];
-            d[`action] like "partial";
-              .debug.bitmex.trade.p:d;
-              .debug.bitmex.trade.a:d;
-          ];
-      ]
-    ];
-  };
-
-//Bitfinex order books callback function 
-.bitfinex.order.upd:{
-    d:.j.k x;.debug.bitfinex.d:d; //0N!d;
-
-    //capture the subscription sym
-    if[(99h~type d);
-        targetKey:`event`channel`chanId`symbol`prec`freq`len`pair;
-        if[targetKey~key d;
-            .debug.bitfinex.ordSubInfo:d;
-            .bitfinex.ordSubSym:`$d[`pair]
-        ];
-        :()
-    ];
-
-    //order events 
-    if[(3~count d[1]) and 2~count d;
-        .debug.bitfinex.order:d;
-
-        //if AMOUNT > 0 then bid else ask; Funding: if AMOUNT < 0 then bid else ask
-        //when PRICE > 0 then you have to add or update the order
-        //when PRICE = 0 then you have to delete the order
-        rd:raze d;
-        newOrder:(.z.n;.bitfinex.ordSubSym;(string "j"$rd[1]);$[0<rd[3];`bid;`ask];abs "f"$rd[2];abs "f"$rd[3];$[0<rd[2];`update;`remove];`unknown;`bitfinex);
-
-        //publish to TP - order table
-        pub[`order;newOrder];
-    ];
-    };
-
-//Bitfinex trades callback function 
-.bitfinex.trade.upd:{
-    d:.j.k x;.debug.bitfinex.dt:d; //0N!d;
-
-    //capture the subscription sym
-    if[(99h~type d);
-        targetKey:`event`channel`chanId`symbol`pair;
-        if[targetKey~key d;
-            .debug.bitfinex.trdSubInfo:d;
-            .bitfinex.trdSubSym:`$d[`pair]
-        ];
-        :()
-    ];
-
-    //trade transactions
-    if[(4~count d[2]) and 3~count d;
-        .debug.bitfinex.trade:d;
-        newTrade:(.z.n;.bitfinex.trdSubSym;" ";"f"$d[2][3];string "j"$d[2][0];$[0<d[2][2];`bid;`ask]; abs "f"$d[2][2];`bitfinex);
-
-        //publish to TP - trade table
-        pub[`trade;newTrade]
-    ];
-    };
-
 //establish the ws connection
 establishWS:{
     .debug.x:x;
@@ -203,34 +107,35 @@ establishWS:{
     0N!currentExchange," ",currentFeed," websocket is connected at ",string .z.z;
     };
 
-//open the websocket and check the connection status 
-connectionCheck:{[]
-    0N!"Checking the websocket connection status"; 
-    upsert[`connChkTbl;(0!select time:.z.p,feed:`order,rowCount:count i by exchange from order)];
-    upsert[`connChkTbl;(0!select time:.z.p,feed:`trade,rowCount:count i by exchange from trade)];
-
-    //check the gdaOrder and gdaTrades tables count by 10 mins time bucket 
-    temp:select secondLastCount:{x[-2+count x]}rowCount,lastCount:last rowCount by timeBucket:10 xbar time.minute,feed,exchange from connChkTbl;
-    recordchk:update diff:lastCount-secondLastCount from select last secondLastCount, last lastCount by feed,exchange from temp;
-    reconnectList:select from recordchk where diff = 0;
-
-    if[0<count reconnectList;
-        feedList: exec feed from reconnectList;
-        exchangeList: exec exchange from reconnectList;
-        hostToReconnect:select from hostsToConnect where feed in feedList,exchange in exchangeList;
-        {0N!x[0]," ",x[1]," WS Not connected!.. Reconnecting at ",string .z.z}each string (exec exchange from hostToReconnect),'(exec feed from hostToReconnect);
-        establishWS each hostToReconnect
-            
-    ];
-    
-    if[0~count reconnectList;
-        0N!"Websocket connections are all secure"
-    ];
-    };
-
 //connect to the websockets
 establishWS each hostsToConnect;
+
+/ //open the websocket and check the connection status 
+/ connectionCheck:{[]
+/     0N!"Checking the websocket connection status"; 
+/     upsert[`connChkTbl;(0!select time:.z.p,feed:`order,rowCount:count i by exchange from order)];
+/     upsert[`connChkTbl;(0!select time:.z.p,feed:`trade,rowCount:count i by exchange from trade)];
+
+/     //check the gdaOrder and gdaTrades tables count by 10 mins time bucket 
+/     temp:select secondLastCount:{x[-2+count x]}rowCount,lastCount:last rowCount by timeBucket:10 xbar time.minute,feed,exchange from connChkTbl;
+/     recordchk:update diff:lastCount-secondLastCount from select last secondLastCount, last lastCount by feed,exchange from temp;
+/     reconnectList:select from recordchk where diff = 0;
+
+/     if[0<count reconnectList;
+/         feedList: exec feed from reconnectList;
+/         exchangeList: exec exchange from reconnectList;
+/         hostToReconnect:select from hostsToConnect where feed in feedList,exchange in exchangeList;
+/         {0N!x[0]," ",x[1]," WS Not connected!.. Reconnecting at ",string .z.z}each string (exec exchange from hostToReconnect),'(exec feed from hostToReconnect);
+/         establishWS each hostToReconnect
+            
+/     ];
+    
+/     if[0~count reconnectList;
+/         0N!"Websocket connections are all secure"
+/     ];
+/     };
+
  
-//connection check every 10 min
-.z.ts:{connectionCheck[]};
-\t 600000
+/ //connection check every 10 min
+/ .z.ts:{connectionCheck[]};
+/ \t 600000
