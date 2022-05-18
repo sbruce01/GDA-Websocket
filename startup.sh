@@ -17,11 +17,7 @@ q hdb.q $HDB_STARTUP_DIR -p 5002 &
 cd $TICK_DIRECTORY
 q r.q localhost:5000 localhost:5002 -p 5008 &
 q chainedr.q localhost:5000 -p 5112 > chainedr.log 2>&1 &
-<<<<<<< HEAD
-q chainedtick.q localhost:5000 -p 5110 -t 1000 >cpt.log 2>&1 & 
-=======
-q wschaintick_0.2.2.q :5000 -p 5110 -t 1000 >ctp.log 2>&1 & 
->>>>>>> dfe1af86ef76bb2ecf81a7f6dcc3da09e25504ca
+q wschaintick_0.2.2.q localhost:5000 -p 5110 -t 1000 >ctp.log 2>&1 & 
 
 cd $BASE_DIRECTORY
 q feedhandler_gda.q -p 5111 > allExchanges.log 2>&1 &
