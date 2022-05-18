@@ -12,8 +12,6 @@ upd:upsert;
 
 //initialise displaying tables
 order: ([]`s#time:"n"$();`g#sym:`$();orderID:();side:`$();price:"f"$();size:"f"$();action:`$();orderType:`$();exchange:`$());
-book: ([]`s#time:"n"$();`g#sym:`$();bids:();bidsizes:();asks:();asksizes:());
-lastBookBySym:enlist[`]!enlist `bidbook`askbook!(()!();()!());
 trade: ([]`s#time:"n"$();`g#sym:`$();orderID:();price:"f"$();tradeID:();side:`$();size:"f"$();exchange:`$());
 connChkTbl:([]exchange:`$();`s#time:"p"$();feed:`$();rowCount:"j"$());
 
@@ -40,84 +38,28 @@ hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:(
 hostsToConnect: update ws:1+til count i from hostsToConnect;
 hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from hostsToConnect where callbackFunc like "*gda*";
 
-bookbuilder:{[x;y]
-    .debug.xy:(x;y);
-    $[not y 0;x;
-        $[
-            `insert=y 4;
-                x,enlist[y 1]! enlist y 2 3;
-            `update=y 4;
-                $[any (y 1) in key x;
-                    [
-                        //update size
-                        a:.[x;(y 1;1);:;y 3];
-                        //update price if the price col is not null
-                        $[0n<>y 2;.[a;(y 1;0);:;y 2];a]
-                    ];
-                    x,enlist[y 1]! enlist y 2 3
-                ];  
-            `remove=y 4;
-                $[any (y 1) in key x;
-                    enlist[y 1] _ x;
-                    x];
-            x
-        ]
-    ]
-    };
-
-generateOrderbook:{[newOrder]
-    .debug.newOrder:newOrder;
-    
-    //create the books based on the last book state
-    books:update bidbook:bookbuilder\[lastBookBySym[first sym]`bidbook;flip (side like "bid";orderID;price;size;action)],askbook:bookbuilder\[lastBookBySym[first sym]`askbook;flip (side like "ask";orderID;price;size;action)] by sym from newOrder;
-
-    //store the latest book state
-    .debug.books1:books;
-    lastBookBySym,:exec last bidbook,last askbook by sym from books;
-
-    //generate the orderbook 
-    books:select time,sym,bids:(value each bidbook)[;;0],bidsizes:(value each bidbook)[;;1],asks:(value each askbook)[;;0],asksizes:(value each askbook)[;;1] from books;
-    books:update bids:desc each distinct each bids,bidsizes:{sum each x group y}'[bidsizes;bids] @' desc each distinct each bids,asks:asc each distinct each asks,asksizes:{sum each x group y}'[asksizes;asks] @' asc each distinct each asks from books
-    };
-
 //GDA orderbooks callback function 
 .gdaNormalised.upd:{[incoming;exchange]
-    0N!"Starting gdaNormalised.upd";
     d:.j.k incoming;.debug.gda.d:d; //0N!d;
     .debug.ordExchange:exchange;
     
     //capture the subscription sym
     if[`event`topic~key d;
-        0N!"Event and Topic in Key";
         .debug.sub:d;
         .gdaNormalised.exchange: `$first "-" vs d[`topic];
         .gdaNormalised.subSym:first exec symbol from gdaExchgTopic where topic=.gdaNormalised.exchange;
         :()
     ];
-    0N!"Valuing d";
+    
     colVal: value d;
-    0N!"Checking the orderID data type";
+    
     //check the orderID data type, convert it to string if it's an int orderID
     orderIdCol:$[10h<>type colVal[2];string "j"$colVal[2];colVal[2]];
     
     //publish to TP - order table
-    0N!"Setting newOrder";
     newOrder:(.z.n;.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange);
     .debug.newOrder:newOrder;
-    0N!"Publishing to order";
     pub[`order;newOrder];
-    0N!"Finished publishing to order";
-
-    neworderTbl: enlist(cols order)!newOrder;
-    .debug.gda.order:neworderTbl;
-    0N!"Generating Order Books";
-    //generate orderbook based on the order transactions
-    books:generateOrderbook[neworderTbl];
-    .debug.gda.books2:books;
-    0N!"Publishing book to TP";
-    //publish to TP - Book
-    pub[`book;books];
-    0N!"Finished";
     };
 
 //GDA trades callback function 
@@ -162,13 +104,6 @@ generateOrderbook:{[newOrder]
           
           //publish to TP - order table
           pub[`order;new];
-         
-          //generate orderbook based on the order transactions
-          books:generateOrderbook[new];
-          .debug.bitmex.books2:books;
-
-          //publish to TP - book table
-          pub[`book;books];
           ];
 
       if[d[`table] like "trade";
@@ -212,16 +147,6 @@ generateOrderbook:{[newOrder]
 
         //publish to TP - order table
         pub[`order;newOrder];
-
-         //create book based on the last book state 
-        neworderTbl: enlist(cols order)!newOrder; 
-    
-        //generate orderbook based on the order transactions
-        books:generateOrderbook[neworderTbl];
-        .debug.bitfinex.books2:books;
-
-        //publish to TP - book table
-        pub[`book;books]
     ];
     };
 
