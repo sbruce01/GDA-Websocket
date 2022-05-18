@@ -16,6 +16,7 @@ q hdb.q $HDB_STARTUP_DIR -p 5002 &
 
 cd $TICK_DIRECTORY
 q r.q localhost:5000 localhost:5002 -p 5008 &
+q chainedr.q localhost:5000 -p 5112 chainedr.log 2>&1 &
 
 cd $BASE_DIRECTORY
 q feedhandler_gda.q -p 5111 > allExchanges.log 2>&1 &
