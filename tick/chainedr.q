@@ -7,7 +7,22 @@ if[not "w"=first string .z.o;system "sleep 1"]
 
 if[not system"p";system"p 5112"]
 
-upd:insert
+.agg.mapping:`trade`order!`.trade.agg`.order.agg;
+
+.trade.agg:{
+    vwaps:select accVol:sum size, vwap:size wavg price, trades:count i by sym, 1 xbar time.minute from trade where sym = `BTCUSDT; // vwap based on trimmed data
+    tab:update 0f^vwap, 0^accVol from (select latestVwap:size wavg price, latestAccVol: sum size by sym, time.minute from x where sym = `BTCUSDT) lj vwaps;
+    :select sym, minute, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol),accVol:(latestAccVol) from tab
+ };
+
+.order.agg:{0N!"Calling Order Agg";0N!(x;y)};
+
+upd:{0N!(x;y);
+    x insert y; //insert incoming data
+    delete from x where time < .z.n-0D00:11:00.00000000;    // trim data to save on memory
+    aggregation:.agg.mapping[x];
+    .my.res:@[aggregation;y];
+    }
 
 / get the chained ticker plant port, default is 5110
 .u.x:.z.x,(count .z.x)_enlist":5000"
