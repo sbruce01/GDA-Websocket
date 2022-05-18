@@ -20,8 +20,8 @@ sideDict:0 1 2f!`unknown`bid`ask;
 actionDict:0 1 2 3 4f!`unknown`skip`insert`remove`update;
 orderTypeDict:0 1 2f!`unknown`limitOrder`marketOrder;
 gdaExchgTopic:([]
-    topic:(`bitfinex;`bybit;`coinbase);
-    symbol:`BTCUSD`BTCUSD`BTCUSD);
+    topic:(`binance;`bybit;`coinbase);
+    symbol:`BTCUSDT`BTCUSD`BTCUSD);
 
 //create the ws subscription table
 hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:());
