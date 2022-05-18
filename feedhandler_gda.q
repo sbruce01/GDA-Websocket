@@ -5,7 +5,7 @@
 h:@[hopen;(`$":localhost:5000";10000);0i];
 pub:{$[h=0;
         neg[h](`upd   ;x;y);
-        neg[h](`.u.upd;x;value flip y)
+        $[0h~type y;neg[h](`.u.upd;x;y);neg[h](`.u.upd;x;value flip y)]
         ]};
 
 upd:upsert;
@@ -82,35 +82,42 @@ generateOrderbook:{[newOrder]
 
 //GDA orderbooks callback function 
 .gdaNormalised.upd:{[incoming;exchange]
+    0N!"Starting gdaNormalised.upd";
     d:.j.k incoming;.debug.gda.d:d; //0N!d;
     .debug.ordExchange:exchange;
     
     //capture the subscription sym
     if[`event`topic~key d;
+        0N!"Event and Topic in Key";
         .debug.sub:d;
         .gdaNormalised.exchange: `$first "-" vs d[`topic];
         .gdaNormalised.subSym:first exec symbol from gdaExchgTopic where topic=.gdaNormalised.exchange;
         :()
     ];
-
+    0N!"Valuing d";
     colVal: value d;
-
+    0N!"Checking the orderID data type";
     //check the orderID data type, convert it to string if it's an int orderID
     orderIdCol:$[10h<>type colVal[2];string "j"$colVal[2];colVal[2]];
     
     //publish to TP - order table
+    0N!"Setting newOrder";
     newOrder:(.z.n;.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange);
+    .debug.newOrder:newOrder;
+    0N!"Publishing to order";
     pub[`order;newOrder];
+    0N!"Finished publishing to order";
 
     neworderTbl: enlist(cols order)!newOrder;
     .debug.gda.order:neworderTbl;
-    
+    0N!"Generating Order Books";
     //generate orderbook based on the order transactions
     books:generateOrderbook[neworderTbl];
     .debug.gda.books2:books;
-
+    0N!"Publishing book to TP";
     //publish to TP - Book
     pub[`book;books];
+    0N!"Finished";
     };
 
 //GDA trades callback function 
