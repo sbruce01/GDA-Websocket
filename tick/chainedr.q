@@ -15,7 +15,7 @@ if[not system"p";system"p 5112"]
     :select sym, minute, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol),accVol:(latestAccVol) from tab
  };
 
-.order.agg:{0N!"Calling Order Agg";0N!(x;y)};
+.order.agg:{0N!"Calling Order Agg";0N!x};
 
 upd:{0N!(x;y);
     x insert y; //insert incoming data
