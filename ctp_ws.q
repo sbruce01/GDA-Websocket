@@ -1,4 +1,4 @@
-\l ws-clinet_0.2.2.q
+\l ws-client_0.2.2.q
 /conda install -c jmcmurray ws-client ws-server
 /.utl.require"ws-server"
 /.utl.require"ws-client"
