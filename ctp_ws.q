@@ -13,4 +13,4 @@
 
 upd:{show x};
 h:.ws.open["ws://localhost:5110";`upd];
-h .j.j enlist[`type]!enlist`sub;
+h .j.j enlist[`type]!enlist`sub
