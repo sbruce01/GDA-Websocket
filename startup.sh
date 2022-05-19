@@ -1,6 +1,7 @@
 #!/bin/bash
 
 BASE_DIRECTORY=$(cd $(dirname $0) && pwd)
+# Checking if directories exist
 if [ ! -d $BASE_DIRECTORY/OnDiskDB ]
 then
     echo "Creating On Disk DB ${BASE_DIRECTORY}/OnDiskDB"
