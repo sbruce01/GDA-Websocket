@@ -11,6 +11,19 @@
 
 / upd:upsert;
 
-upd:{show x};
-h:.ws.open["ws://localhost:5110";`upd];
-h .j.j enlist[`type]!enlist`sub
+/h .j.j enlist[`type]!enlist`sub
+
+upd:{[jsonIncoming;table;instrument;st;et]
+    .debug.incoming: incoming:.j.k jsonIncoming;
+
+    //data type check
+    meta incoming[1];
+
+    if[table like incoming[0];
+        tb:update time:"N"$time from incoming[1];
+        :select from tb where time>st,time<et,sym like instrument
+    ]
+};
+
+
+h:.ws.open["ws://localhost:5110";upd[;table;instrument;st;et]];

@@ -1,13 +1,19 @@
 #!/bin/bash
 
 BASE_DIRECTORY=$(cd $(dirname $0) && pwd)
+# Checking if directories exist
 if [ ! -d $BASE_DIRECTORY/OnDiskDB ]
 then
     echo "Creating On Disk DB ${BASE_DIRECTORY}/OnDiskDB"
     mkdir -p ${BASE_DIRECTORY}/OnDiskDB
 fi
 ON_DISK_HDB=${BASE_DIRECTORY}/OnDiskDB/
-HDB_STARTUP_DIR=${ON_DISK_HDB}/sym/
+if [ ! -d ${ON_DISK_HDB}sym/ ]
+then
+    echo "Creating On Disk DB ${ON_DISK_HDB}sym/"
+    mkdir -p ${ON_DISK_HDB}sym/
+fi
+HDB_STARTUP_DIR=${ON_DISK_HDB}sym/
 TICK_DIRECTORY=${BASE_DIRECTORY}/tick/
 
 cd $BASE_DIRECTORY
