@@ -110,32 +110,35 @@ establishWS:{
 //connect to the websockets
 establishWS each hostsToConnect;
 
-/ //open the websocket and check the connection status 
-/ connectionCheck:{[]
-/     0N!"Checking the websocket connection status"; 
-/     upsert[`connChkTbl;(0!select time:.z.p,feed:`order,rowCount:count i by exchange from order)];
-/     upsert[`connChkTbl;(0!select time:.z.p,feed:`trade,rowCount:count i by exchange from trade)];
+//open the websocket and check the connection status 
+connectionCheck:{[]
+    0N!"Checking the websocket connection status";
+    //open the handle to rdb to retrive table records 
+    rdb:@[hopen;(`$":localhost:5008";10000);0i];
+    rdbOrder:rdb"order";   
+    rdbTrade:rdb"trade";  
+    upsert[`connChkTbl;(0!select time:.z.p,feed:`order,rowCount:count i by exchange from rdbOrder)];
+    upsert[`connChkTbl;(0!select time:.z.p,feed:`trade,rowCount:count i by exchange from rdbTrade)];
 
-/     //check the gdaOrder and gdaTrades tables count by 10 mins time bucket 
-/     temp:select secondLastCount:{x[-2+count x]}rowCount,lastCount:last rowCount by timeBucket:10 xbar time.minute,feed,exchange from connChkTbl;
-/     recordchk:update diff:lastCount-secondLastCount from select last secondLastCount, last lastCount by feed,exchange from temp;
-/     reconnectList:select from recordchk where diff = 0;
+    //check the gdaOrder and gdaTrades tables count by 10 mins time bucket 
+    temp:select secondLastCount:{x[-2+count x]}rowCount,lastCount:last rowCount by timeBucket:10 xbar time.minute,feed,exchange from connChkTbl;
+    recordchk:update diff:lastCount-secondLastCount from select last secondLastCount, last lastCount by feed,exchange from temp;
+    reconnectList:select from recordchk where diff = 0;
 
-/     if[0<count reconnectList;
-/         feedList: exec feed from reconnectList;
-/         exchangeList: exec exchange from reconnectList;
-/         hostToReconnect:select from hostsToConnect where feed in feedList,exchange in exchangeList;
-/         {0N!x[0]," ",x[1]," WS Not connected!.. Reconnecting at ",string .z.z}each string (exec exchange from hostToReconnect),'(exec feed from hostToReconnect);
-/         establishWS each hostToReconnect
+    if[0<count reconnectList;
+        feedList: exec feed from reconnectList;
+        exchangeList: exec exchange from reconnectList;
+        hostToReconnect:select from hostsToConnect where feed in feedList,exchange in exchangeList;
+        {0N!x[0]," ",x[1]," WS Not connected!.. Reconnecting at ",string .z.z}each string (exec exchange from hostToReconnect),'(exec feed from hostToReconnect);
+        establishWS each hostToReconnect
             
-/     ];
+    ];
     
-/     if[0~count reconnectList;
-/         0N!"Websocket connections are all secure"
-/     ];
-/     };
+    if[0~count reconnectList;
+        0N!"Websocket connections are all secure"
+    ];
+    };
 
- 
-/ //connection check every 10 min
-/ .z.ts:{connectionCheck[]};
-/ \t 600000
+//connection check every 10 min
+.z.ts:{connectionCheck[]};
+\t 600000
