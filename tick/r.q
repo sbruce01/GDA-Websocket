@@ -18,3 +18,20 @@ upd:insert;
 / connect to ticker plant for (schema;(logcount;log))
 .u.rep .(hopen `$":",.u.x 0)"(.u.sub[`;`];`.u `i`L)";
 
+selectFunc:{[tbl;sd;ed;ids;exc]
+    .debug.selectFunc:`tbl`sd`ed`ids`exc!(tbl;sd;ed;ids;exc);
+    .[selectFuncAPI;(tbl;sd;ed;ids;exc);{-2!"Error selecting data: ",x;()}]
+ };
+
+selectFuncAPI:{[tbl;sd;ed;ids;exc]
+  sdTimespan:`timespan$sd;
+  edTimespan:`timespan$ed;
+  wClause:();
+  if[not all null (sd;ed); wClause,:enlist(within;`time;(enlist;sdTimespan;edTimespan))];
+  if[not null ids; wClause,:enlist(in;`sym;enlist ids)];
+  if[not null exc; wClause,:enlist(in;`exchange;enlist exc)];
+  $[`date in cols tbl;
+  [wClause,:enlist(within;`date;(enlist;`sd.date;`ed.date));
+      ?[tbl;wClause;0b;()]];
+  [res:$[.z.D within (`date$sd;`date$ed); ?[tbl;wClause;0b;()];0#value tbl];
+    `date xcols update date:.z.D from res]] };
