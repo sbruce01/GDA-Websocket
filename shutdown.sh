@@ -1,3 +1,4 @@
+#!/bin/bash
 ps aux | grep ' tick.q' | grep '5000'| grep -v grep | awk '{print $2}' | xargs -I {} kill -9 {}
 ps aux | grep ' hdb.q' | grep '5002'| grep -v grep | awk '{print $2}' | xargs -I {} kill -9 {}
 ps aux | grep ' r.q' | grep '5008'| grep -v grep | awk '{print $2}' | xargs -I {} kill -9 {}
