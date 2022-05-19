@@ -8,12 +8,12 @@ if[not "w"=first string .z.o;system "sleep 1"]
 if[not system"p";system"p 5112"]
 
 .agg.mapping:`trade`order!`.trade.agg`.order.agg;
-
+//Why is binance the only trade exchange?
 .trade.agg:{
     .my.x:x;
     0N!x;
-    tab:update 0f^vwap, 0^accVol from (select latestVwap:size wavg price, latestAccVol: sum size by sym, time.minute from x) lj vwap;
-    res:select sym, minute, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol),accVol:(latestAccVol) from tab;
+    tab:update 0f^vwap, 0^accVol from (select latestVwap:size wavg price, latestAccVol: sum size by sym, time.minute, exchange from x) lj vwap;
+    res:select sym, minute, exchange, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol),accVol:(latestAccVol) from tab;
     //update the vwaps table
     `vwap upsert res;
  
@@ -22,8 +22,20 @@ if[not system"p";system"p 5112"]
         .u.pub[`vwap;0!to_send];
         delete from `vwap where not i = (last;i) fby sym
     ];
+    tab2:update 0N^open, 0f^high, 0N^low, 0f^close from (select latestOpen:first price, latestHigh:max price, latestLow:min price, latestClose:last price by sym,time.minute, exchange from x) lj hlcv;
+    //res2:select sym, minute, open, high, low, close from tab2;
+    res2:select sym, minute, exchange, open: first(open;latestOpen), high: max(latestHigh;high), low:first mins(exec latestLow,low from tab2), close:latestClose from tab2;
+    //res:select sym, minute, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol),accVol:(latestAccVol) from tab;
+    //update the vwaps table
+    `hlcv upsert res2;
+ 
+  //publish the result
+    if[count to_send:select from hlcv where not i = (last;i) fby sym;
+        .u.pub[`hlcv;0!to_send];
+        delete from `hlcv where not i = (last;i) fby sym
+    ];
  };
-
+ 
 .order.agg:{0N!"Calling Order Agg";0N!x};
 
 upd:{0N!(x;y);
@@ -49,5 +61,6 @@ tph:hopen`$":",.u.x 0
 / connect to tickerplant or chained ticker plant for (schema;(logcount;log))
 tp_data:(hopen`$":",.u.x 0)"(.u.sub[`;`];$[`m in key`.u;(`.u `m)\"`.u `i`L\";`.u `i`L])"
 {(.[;();:;].)each x} tp_data 0
-vwap:`sym`minute xkey vwap
+vwap:`sym`minute`exchange xkey vwap
+hlcv:`sym`minute`exchange xkey hlcv
 {if[null first x;:()];-11!x;} tp_data 1
