@@ -37,7 +37,7 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
 .gdaNormalised.upd:{[incoming;exchange]
     d:.j.k incoming;.debug.gda.d:d; //0N!d;
     .debug.ordExchange:exchange;
-    
+
     //capture the subscription sym
     if[`event`topic~key d;
         .debug.sub:d;
@@ -47,12 +47,26 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     ];
     
     colVal: value d;
+
+    //set the receive timestamp as the time if the event timestamp is empty
+    d[`event_timestamp]: $[-1f~colVal[8];colVal[10];colVal[8]];
     
     //check the orderID data type, convert it to string if it's an int orderID
     orderIdCol:$[10h<>type colVal[2];string "j"$colVal[2];colVal[2]];
     
+    if[10h~type d[`event_timestamp];
+        /coinbase
+        newOrder:("p"$"Z"$d[`event_timestamp];.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange)
+    ];
+
+    if[-9h~type d[`event_timestamp];   
+        /bitfinex,bybit,ftx,huobi,kraken
+        /convert currentTimeMillis to timestamp
+        f:{`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
+        newOrder:($[1D<abs .z.p - t:("p"$f d[`event_timestamp]);.z.p;t];.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange)
+    ];
+
     //publish to TP - order table
-    newOrder:(.z.p;.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange);
     .debug.newOrder:newOrder;
     pub[`order;newOrder];
     };
@@ -71,10 +85,21 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     ];
 
     colVal: value d;
-    newTrade: (.z.p;.gdaTrades.subSym;($[10h<>type colVal[0];string "j"$colVal[0];colVal[0]]);colVal[1];($[10h<>type colVal[2];string "j"$colVal[2];colVal[2]]);sideDict colVal[4];colVal[5];exchange);  
-    .debug.gda.trade:newTrade;
+
+    if[10h~type d[`timestamp];
+        /coinbase
+        newTrade: ("p"$"Z"$d[`event_timestamp];.gdaTrades.subSym;($[10h<>type colVal[0];string "j"$colVal[0];colVal[0]]);colVal[1];($[10h<>type colVal[2];string "j"$colVal[2];colVal[2]]);sideDict colVal[4];colVal[5];exchange)
+    ];
+ 
+    if[-9h~type d[`timestamp];   
+        /bitfinex,bybit,ftx,huobi,kraken,dydx
+        //convert currentTimeMillis to timestamp
+        f:{`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
+        newTrade: ($[1D<abs .z.p - t:"p"$f colVal[3];.z.p;t];.gdaTrades.subSym;($[10h<>type colVal[0];string "j"$colVal[0];colVal[0]]);colVal[1];($[10h<>type colVal[2];string "j"$colVal[2];colVal[2]]);sideDict colVal[4];colVal[5];exchange)
+    ];
 
     //publish to TP - trade table
+    .debug.gda.trade:newTrade;
     pub[`trade;newTrade];
     };
 
