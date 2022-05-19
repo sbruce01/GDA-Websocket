@@ -11,8 +11,8 @@ pub:{$[h=0;
 upd:upsert;
 
 //initialise displaying tables
-order: ([]`s#time:"n"$();`g#sym:`$();orderID:();side:`$();price:"f"$();size:"f"$();action:`$();orderType:`$();exchange:`$());
-trade: ([]`s#time:"n"$();`g#sym:`$();orderID:();price:"f"$();tradeID:();side:`$();size:"f"$();exchange:`$());
+order: ([]`s#time:"p"$();`g#sym:`$();orderID:();side:`$();price:"f"$();size:"f"$();action:`$();orderType:`$();exchange:`$());
+trade: ([]`s#time:"p"$();`g#sym:`$();orderID:();price:"f"$();tradeID:();side:`$();size:"f"$();exchange:`$());
 connChkTbl:([]exchange:`$();`s#time:"p"$();feed:`$();rowCount:"j"$());
 
 BuySellDict:("Buy";"Sell")!(`bid;`ask);
@@ -30,7 +30,7 @@ hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:(
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"trades");x;`trade;`.gdaTrades.updExchg)}each exec topic from gdaExchgTopic;
 
 //add record ID
-hostsToConnect: update ws:1+til count i from hostsToConnect;
+hostsToConnect:update ws:1+til count i from hostsToConnect;
 hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from hostsToConnect where callbackFunc like "*gda*";
 
 //GDA orderbooks callback function 
@@ -52,7 +52,7 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     orderIdCol:$[10h<>type colVal[2];string "j"$colVal[2];colVal[2]];
     
     //publish to TP - order table
-    newOrder:(.z.n;.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange);
+    newOrder:(.z.p;.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange);
     .debug.newOrder:newOrder;
     pub[`order;newOrder];
     };
@@ -71,7 +71,7 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     ];
 
     colVal: value d;
-    newTrade: (.z.n;.gdaTrades.subSym;($[10h<>type colVal[0];string "j"$colVal[0];colVal[0]]);colVal[1];($[10h<>type colVal[2];string "j"$colVal[2];colVal[2]]);sideDict colVal[4];colVal[5];exchange);  
+    newTrade: (.z.p;.gdaTrades.subSym;($[10h<>type colVal[0];string "j"$colVal[0];colVal[0]]);colVal[1];($[10h<>type colVal[2];string "j"$colVal[2];colVal[2]]);sideDict colVal[4];colVal[5];exchange);  
     .debug.gda.trade:newTrade;
 
     //publish to TP - trade table
