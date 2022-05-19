@@ -7,6 +7,11 @@ then
     mkdir -p ${BASE_DIRECTORY}/OnDiskDB
 fi
 ON_DISK_HDB=${BASE_DIRECTORY}/OnDiskDB/
+if [ ! -d ${ON_DISK_HDB}sym/ ]
+then
+    echo "Creating On Disk DB ${ON_DISK_HDB}sym/"
+    mkdir -p ${ON_DISK_HDB}sym/
+fi
 HDB_STARTUP_DIR=${ON_DISK_HDB}sym/
 TICK_DIRECTORY=${BASE_DIRECTORY}/tick/
 
