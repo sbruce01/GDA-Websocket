@@ -13,7 +13,7 @@ selectFunc:{[tbl;sd;ed;ids;exc]
 selectFuncAPI:{[tbl;sd;ed;ids;exc]
   wClause:();
   if[not all null (sd;ed); wClause,:enlist(within;`time;(enlist;sd;ed))];
-  if[not null ids; wClause,:enlist(in;`sym;enlist ids)];
+  if[not all null ids;$[-11h~type ids;wClause,:enlist(in;`sym;enlist ids);wClause,:enlist(in;`sym;ids)]]
   if[not null exc; wClause,:enlist(in;`exchange;enlist exc)];
   $[`date in cols tbl;
   [wClause:enlist(within;`date;(enlist;`sd.date;`ed.date)),wClause;
