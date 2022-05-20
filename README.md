@@ -72,7 +72,7 @@ q /path-to-install-dir/launcher.q_
 Connect your websocket client to ws://localhost:5110
 
 A basic command is sent in the following format:
-{"type": "sub", "tables": [<tableName>],"syms":[<SubscriptionSymbol>]}
+{"type": "sub", "tables": `[tableName]`,"syms":`[<SubscriptionSymbol>]`}
 
 You may subscribe to multiple tables at a time by sending an array of subscription table names.
 
