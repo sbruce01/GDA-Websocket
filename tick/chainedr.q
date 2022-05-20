@@ -22,7 +22,7 @@ upd_realtime:{0N!.debug.upd:(x;y);
 
 upd_recovery:{ }
 
-.trade.lookback:5
+//.trade.lookback:5
 .trade.vwap:{
     .my.x:x;
     /0N!x;
@@ -39,14 +39,12 @@ upd_recovery:{ }
     res2:select sym, minute, exchange, open: open, high: max (latestHigh;high), low:min(0w ^latestLow;0w ^ low), close:latestClose, volume: sum(volume;latestVolume) from tab2;
     `ohlcv upsert res2;
   } 
-  
 pub_data:{[x]    
-    if[count to_send:select from x where not minute in (`minute$.z.p) - 00:00+til .trade.lookback;
+    if[count to_send:select from x where minute =(exec max minute from x);
         .u.pub[x;0!to_send];
-        delete from x where not minute in (`minute$.z.p) - 00:00+til .trade.lookback;
+        delete from x where minute < (first exec max minute from x);
     ];
   }
-
 .z.ts:{
     pub_data each `ohlcv`vwap;
  }
