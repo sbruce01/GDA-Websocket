@@ -15,6 +15,35 @@ GDA Websocket Feed for cryptocurrencies
 | FH          | 5111        |
 | GW          | 5005        |
 
+## REST API
+
+The `GW` process hosts a REST API endpoint which enables users to query the RDB and HDB via GET requests. The endpoint sits at `/getData` which if called without filters returns orders data from all instruments and exchanges over the past minute. The included filters are:
+
+| Filter | Type            | Example                       | Available Values         |
+|--------|-----------------|-------------------------------|--------------------------|
+| tbls   | Atomic symbol   | order                         | order, trade             |
+| sd     | Atomic timespan | 2022.05.20D06:13:42.000000000 | N/A                      |
+| ed     | Atomic timespan | 2022.05.20D06:16:42.000000000 | N/A                      |
+| ids    | Symbol list     | BTCUSD,ABC                    | BTCUSD, BTCUSDT          |
+| exc    | Symbol list     | coinbase,bybit                | coinbase, bybit, binance |
+
+### Examples
+
+```bash
+# Get data from all exchanges and instruments for the past minute
+curl 'localhost:5005/getData'
+# Get data from a specified start time to the current time 
+curl 'localhost:5005/getData?sd=2022.05.20D04:42:40.000000000'
+# Get data for a specified window of time 
+curl 'localhost:5005/getData?sd=2022.05.20D04:42:40.000000000&ed=2022.05.20D04:43:40.000000000'
+# Get data for a specific exchange (from a specified start time)
+curl 'localhost:5005/getData?sd=2022.05.20D04:42:40.000000000&exc=binance'
+# Get data for a specific instrument (from a specified start time)
+curl 'localhost:5005/getData?sd=2022.05.20D04:42:40.000000000&ids=BTCUSD'
+```
+
+
+
 ## Implementation into AWS
 
 ### Git
