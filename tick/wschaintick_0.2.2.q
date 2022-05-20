@@ -5,8 +5,8 @@
 
 if[not system"p";system"p 5110"]
 
-\l ../ws-server_0.2.2.q
-\l ../ws-handler.q
+\l ../websocket/ws-server_0.2.2.q
+\l ../websocket/ws-handler.q
 
 if[system"t";
 	 .z.ts:{.wsu.pub'[.wsu.t;value each .wsu.t];@[`.;.wsu.t;@[;`sym;`g#]0#]}; 
