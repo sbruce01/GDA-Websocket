@@ -1,5 +1,3 @@
-\l ./websocket/ws-client_0.2.2.q
-
 // Example of subscribing to KX Websocket End point using a dictionary
 \l ./websocket/ws-client_0.2.2.q
 upd:{.debug.x:x}
