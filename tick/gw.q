@@ -3,6 +3,11 @@
 
 if[not system"p";system"p 5005"]
 
+runCommand:"l ",a:,[getenv`QHOME;"rest.q_"];
+
+@[system;runCommand;{0N!x}]
+
+
 hdbHandle:hopen`$":",.z.x 0;
 rdbHandle:hopen `$":",.z.x 1;
 
