@@ -40,3 +40,13 @@ getData:{[tbl;sd;ed;ids;exc]
         .rest.reg.data[`ed;-12h;0b;.z.p;"End Date"],
             .rest.reg.data[`ids;-11h;0b;`;"Instruments to subscribe to"],
                 .rest.reg.data[`exc;-11h;0b;`;"Exchange to subscribe to"]]
+
+.rest.register[`get;
+  "/getData2";
+  "API with format of getData";
+  .db.getDataREST;
+  .rest.reg.data[`tbl;-11h;0b;`order;"Table to Query"],
+    .rest.reg.data[`sd;-12h;0b;.z.p-00:01:00.000000000;"Start Date"],
+        .rest.reg.data[`ed;-12h;0b;.z.p;"End Date"],
+            .rest.reg.data[`ids;11h;0b;0#`;"Instruments to subscribe to"],
+                .rest.reg.data[`exc;11h;0b;0#`;"Exchange to subscribe to"]]
