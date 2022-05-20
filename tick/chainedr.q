@@ -40,7 +40,8 @@ upd_recovery:{ }
 .trade.ohlcv:{
     .debug.ohlcv:x;
     tab2:update 0N^open, 0f^high, 0N^low, 0f^close, 0f^volume from (select latestOpen:first price, latestHigh:max price, latestLow:min price, latestClose:last price, latestVolume:sum size by sym,time.minute, exchange from x) lj ohlcv;
-    res2:select sym, minute, exchange, open: first latestOpen, high: max (latestHigh;high), low:min(0w ^latestLow;0w ^ low), close:latestClose, volume: sum(volume;latestVolume) from tab2;
+    tab2: update open: latestOpen from tab2 where open = 0N; 
+    res2:select sym, minute, exchange, open: open, high: max (latestHigh;high), low:min(0w ^latestLow;0w ^ low), close:latestClose, volume: sum(volume;latestVolume) from tab2;
     `ohlcv upsert res2;
  
       //publish the result
