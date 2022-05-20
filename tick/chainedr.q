@@ -30,11 +30,6 @@ upd_recovery:{ }
     res:select sym, minute, exchange, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol),accVol:(latestAccVol) from tab;
     //update the vwaps table
     `vwap upsert res;
-  //publish the result
-    if[count to_send:select from vwap where not minute in (`minute$.z.p) - 00:00+til .trade.lookback;
-        .u.pub[`vwap;0!to_send];
-        delete from `vwap where not minute in (`minute$.z.p) - 00:00+til .trade.lookback;
-    ];
  }
 
 .trade.ohlcv:{
@@ -43,14 +38,20 @@ upd_recovery:{ }
     tab2: update open: latestOpen from tab2 where open = 0N; 
     res2:select sym, minute, exchange, open: open, high: max (latestHigh;high), low:min(0w ^latestLow;0w ^ low), close:latestClose, volume: sum(volume;latestVolume) from tab2;
     `ohlcv upsert res2;
- 
-      //publish the result
-    if[count to_send:select from ohlcv where not minute in (`minute$.z.p) - 00:00+til .trade.lookback;
-        .u.pub[`ohlcv;0!to_send];
-        delete from `ohlcv where not minute in (`minute$.z.p) - 00:00+til .trade.lookback;
-    ];
   } 
+  
+pub_data:{[x]    
+    if[count to_send:select from x where not minute in (`minute$.z.p) - 00:00+til .trade.lookback;
+        .u.pub[x;0!to_send];
+        delete from x where not minute in (`minute$.z.p) - 00:00+til .trade.lookback;
+    ];
+  }
 
+.z.ts:{
+    pub_data each `ohlcv`vwap;
+ }
+ //1 minute timer
+\t 60000
 .order.agg:{.debug.x:x};
 
 / get the chained ticker plant port, default is 5110
