@@ -19,6 +19,7 @@ BuySellDict:("Buy";"Sell")!(`bid;`ask);
 sideDict:0 1 2f!`unknown`bid`ask;
 actionDict:0 1 2 3 4f!`unknown`skip`insert`remove`update;
 orderTypeDict:0 1 2f!`unknown`limitOrder`marketOrder;
+bitmexSymbolDict:(enlist"XBTUSD")!enlist("BTCUSD");
 gdaExchgTopic:([]
     topic:(`binance;`bybit;`coinbase);
     symbol:`BTCUSDT`BTCUSD`BTCUSD);
@@ -28,7 +29,8 @@ hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:(
 //add all exchanges from gda
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"normalised");x;`order;`.gdaNormalised.updExchg)}each exec topic from gdaExchgTopic;
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"trades");x;`trade;`.gdaTrades.updExchg)}each exec topic from gdaExchgTopic;
-
+//add BitMEX websocket 
+`hostsToConnect upsert("wss://ws.bitmex.com/realtime";`op`args!("subscribe";"trade:XBTUSD");`bitmex;`trade;`.bitmex.upd);
 //add record ID
 hostsToConnect:update ws:1+til count i from hostsToConnect;
 hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from hostsToConnect where callbackFunc like "*gda*";
@@ -102,6 +104,23 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     .debug.gda.trade:newTrade;
     pub[`trade;newTrade];
     };
+
+//bitmex trades callback function
+.bitmex.upd:{
+    d:.j.k x;.debug.bitmex.d:d; //0N!d;
+      if[d[`table] like "trade";
+          $[d[`action] like "insert";
+              [.debug.bitmex.trade.i:d;
+                newTrade:select time:"p"$"Z"$timestamp,sym:sym:`$({$["" like bitmexSymbolDict x;x;bitmexSymbolDict x]} each symbol),orderID:" ",price,tradeID:trdMatchID,side:BuySellDict[side],"f"$size,exchange:`bitmex from d`data;
+                .debug.bitmex.newTrade:newTrade;
+                pub[`trade;newTrade]
+                ];
+            d[`action] like "partial";
+              .debug.bitmex.trade.p:d;
+              .debug.bitmex.trade.a:d;
+          ];
+        ]
+  };
 
 //establish the ws connection
 establishWS:{
