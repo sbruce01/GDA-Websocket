@@ -13,7 +13,7 @@ upd:upsert;
 //initialise displaying tables
 order: ([]`s#time:"p"$();`g#sym:`$();orderID:();side:`$();price:"f"$();size:"f"$();action:`$();orderType:`$();exchange:`$());
 trade: ([]`s#time:"p"$();`g#sym:`$();orderID:();price:"f"$();tradeID:();side:`$();size:"f"$();exchange:`$());
-connChkTbl:([]exchange:`$();`s#time:"p"$();feed:`$();rowCount:"j"$());
+connChkTbl:([exchange:`$();feed:`$()]`s#time:"p"$());
 
 BuySellDict:("Buy";"Sell")!(`bid;`ask);
 sideDict:0 1 2f!`unknown`bid`ask;
@@ -30,7 +30,7 @@ hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:(
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"normalised");x;`order;`.gdaNormalised.updExchg)}each exec topic from gdaExchgTopic;
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"trades");x;`trade;`.gdaTrades.updExchg)}each exec topic from gdaExchgTopic;
 //add BitMEX websocket 
-`hostsToConnect upsert("wss://ws.bitmex.com/realtime";`op`args!("subscribe";"trade:XBTUSD");`bitmex;`trade;`.bitmex.upd);
+/`hostsToConnect upsert("wss://ws.bitmex.com/realtime";`op`args!("subscribe";"trade:XBTUSD");`bitmex;`trade;`.bitmex.upd);
 //add record ID
 hostsToConnect:update ws:1+til count i from hostsToConnect;
 hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from hostsToConnect where callbackFunc like "*gda*";
@@ -71,6 +71,9 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     //publish to TP - order table
     .debug.newOrder:newOrder;
     pub[`order;newOrder];
+
+    //update record in the connection check table
+    upsert[`connChkTbl;(exchange;`order;.z.p)];
     };
 
 //GDA trades callback function 
@@ -103,6 +106,9 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     //publish to TP - trade table
     .debug.gda.trade:newTrade;
     pub[`trade;newTrade];
+
+    //update record in the connection check table
+    upsert[`connChkTbl;(exchange;`trade;.z.p)];
     };
 
 //bitmex trades callback function
@@ -113,7 +119,9 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
               [.debug.bitmex.trade.i:d;
                 newTrade:select time:"p"$"Z"$timestamp,sym:sym:`$({$["" like bitmexSymbolDict x;x;bitmexSymbolDict x]} each symbol),orderID:" ",price,tradeID:trdMatchID,side:BuySellDict[side],"f"$size,exchange:`bitmex from d`data;
                 .debug.bitmex.newTrade:newTrade;
-                pub[`trade;newTrade]
+                pub[`trade;newTrade];
+                //update record in the connection check table
+                upsert[`connChkTbl;(`bitmex;`trade;.z.p)]
                 ];
             d[`action] like "partial";
               .debug.bitmex.trade.p:d;
@@ -157,25 +165,14 @@ establishWS each hostsToConnect;
 //open the websocket and check the connection status 
 connectionCheck:{[]
     0N!"Checking the websocket connection status";
-    //open the handle to rdb to retrive table records 
-    rdb:@[hopen;(`$":localhost:5008";10000);0i];
-    rdbOrder:rdb"order";   
-    rdbTrade:rdb"trade";  
-    upsert[`connChkTbl;(0!select time:.z.p,feed:`order,rowCount:count i by exchange from rdbOrder)];
-    upsert[`connChkTbl;(0!select time:.z.p,feed:`trade,rowCount:count i by exchange from rdbTrade)];
-
-    //check the gdaOrder and gdaTrades tables count by 10 mins time bucket 
-    temp:select secondLastCount:{x[-2+count x]}rowCount,lastCount:last rowCount by timeBucket:10 xbar time.minute,feed,exchange from connChkTbl;
-    recordchk:update diff:lastCount-secondLastCount from select last secondLastCount, last lastCount by feed,exchange from temp;
-    reconnectList:select from recordchk where diff = 0;
-
+    //Reconnect after 10 minutes if no new records are being updated
+    reconnectList: select from connChkTbl where time<(.z.p-00:10:00); 
     if[0<count reconnectList;
         feedList: exec feed from reconnectList;
         exchangeList: exec exchange from reconnectList;
         hostToReconnect:select from hostsToConnect where feed in feedList,exchange in exchangeList;
         {0N!x[0]," ",x[1]," WS Not connected!.. Reconnecting at ",string .z.z}each string (exec exchange from hostToReconnect),'(exec feed from hostToReconnect);
         establishWS each hostToReconnect
-            
     ];
     
     if[0~count reconnectList;
@@ -183,6 +180,6 @@ connectionCheck:{[]
     ];
     };
 
-//connection check every 10 min
+/connection check every 10 min
 .z.ts:{connectionCheck[]};
 \t 600000
