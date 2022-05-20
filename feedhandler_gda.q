@@ -1,4 +1,4 @@
-\l ws-client_0.2.2.q
+\l ./websocket/ws-client_0.2.2.q
 /conda install -c jmcmurray ws-client ws-server
 /.utl.require"ws-client";
 
