@@ -25,5 +25,8 @@ upd:{[jsonIncoming;table;instrument;st;et]
     ]
 };
 
+connFunc:{[table;intrument;st;et]
+    0N!"Open the websocket";
+    h:.ws.open["ws://localhost:5110";upd[;table;instrument;st;et]];
+}
 
-h:.ws.open["ws://localhost:5110";upd[;table;instrument;st;et]];
