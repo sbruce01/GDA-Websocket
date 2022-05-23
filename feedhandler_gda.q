@@ -30,12 +30,15 @@ millisToTS:{`timestamp$`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
 .time.trade.coinbase:{@[x;`timestamp;"p"$"Z"$]}; 
 .time.trade.bybit:{@[x;`timestamp;millisToTS]};
 
-.time.order.binance:{@[x;`event_timestamp;millisToTS]}; 
-.time.order.coinbase:{.debug.x:x;
-                        $[-9h~type first x[`event_timestamp];
-                            @[x;`event_timestamp;millisToTS]; 
-                            @[x;`event_timestamp;"p"$"Z"$]]}; 
-.time.order.bybit:{@[x;`event_timestamp;millisToTS]}; 
+// Exchange specific Order mapping
+.order.binance:{update millisToTS event_timestamp from x};
+.order.bybit:{update millisToTS event_timestamp from x};
+.order.coinbase:{.debug.order.coinbase:x;update ?[-9h~type event_timestamp;millisToTS;"p"$"Z"$] event_timestamp from x};
+
+// Exchange specific Order mapping
+.trade.binance:{update millisToTS timestamp from x};
+.trade.bybit:{update millisToTS timestamp from x};
+.trade.coinbase:{.debug.trade.coinbase:x;update ?[-9h~type timestamp;millisToTS;"p"$"Z"$] timestamp from x};
 
 //create the ws subscription table
 hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:());
@@ -53,25 +56,27 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     d:.j.k incoming;.debug.gda.d:d; //0N!d;
     .debug.ordExchange:exchange;
 
-    //capture the subscription sym
     if[`event`topic~key d;
         .debug.sub:d;
-        .gdaNormalised.exchange: `$first "-" vs d[`topic];
-        .gdaNormalised.subSym:first exec symbol from gdaExchgTopic where topic=.gdaNormalised.exchange;
         :()
     ];
 
-    //set the receive_timestamp as the time if the event_timestamp is null
-    if[(0=count d[`event_timestamp]) or any (-1f;0f)~\:d[`event_timestamp];d[`event_timestamp]:d[`receive_timestamp]];
-
-    //cast the time to timestamp type 
-    if[-12h<>type d[`event_timestamp];d:(key d)!first each value flip(.time.order[exchange])enlist d];
-  
-    //check the orderID data type, convert it to string if it's an int orderID
-    orderIdCol:$[10h<>type d[`order_id];string "j"$d[`order_id];d[`order_id]];
+    //capture the subscription sym
+    subSym:exec first symbol from gdaExchgTopic where topic=exchange;
+    d:d,(`sym`exchange)!(subSym;exchange);
     
+    //perform generic mapping
+    d:update event_timestamp:?[(0=count event_timestamp) or any (0f;-1f)~\:event_timestamp;receive_timestamp;event_timestamp], 
+                order_id:?[10h<>type order_id;string "j"$order_id;order_id],
+                sideDict side,
+                actionDict lob_action,
+                orderTypeDict order_type from d;
+
+    //perform Exchange specific mapping
+    d:.order[exchange] d;
+
     //publish to TP - order table
-    newOrder:(d[`event_timestamp];.gdaNormalised.subSym;orderIdCol;sideDict d[`side];d[`price];d[`size];actionDict d[`lob_action];orderTypeDict d[`order_type];exchange);
+    newOrder:d`event_timestamp`sym`order_id`side`price`size`lob_action`order_type`exchange;
     .debug.newOrder:newOrder;
     pub[`order;newOrder];
 
@@ -84,22 +89,27 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     d:.j.k incoming;.debug.gda.dt:d; //0N!d;
     .debug.trdExchange:exchange;
     
-    //capture the subscription sym
     if[`event`topic~key d;
         .debug.subt:d;
-        .gdaTrades.exchange: `$first "-" vs d[`topic];
-        .gdaTrades.subSym:first exec symbol from gdaExchgTopic where topic=.gdaTrades.exchange;
         :()
     ];
 
-    //add timestamp value if it is null
-    if[(0=count d[`timestamp]) or any (0f;-1f)~\:d[`timestamp];d[`timestamp]:.z.p];
-
-    //cast the time to timestamp type 
-    if[-12h<>type d[`timestamp]; d:(.time.trade[exchange])d];
+    //capture the subscription sym
+    subSym:exec first symbol from gdaExchgTopic where topic=exchange;
+    d:d,(`sym`exchange)!(subSym;exchange);
+    
+    //perform generic mapping
+    d:update timestamp:?[(0=count timestamp) or any (0f;-1f)~\:timestamp;.z.p;timestamp], 
+                order_id:?[10h<>type order_id;string "j"$order_id;order_id],
+                trade_id:?[10h<>type trade_id;string "j"$trade_id;trade_id],
+                sideDict side
+                from d;
+    
+    //perform Exchange specific mapping
+    d:$[-12h<>type d[`timestamp];.trade[exchange] d;d];
    
     //publish to TP - trade table
-    newTrade: (d[`timestamp];.gdaTrades.subSym;($[10h<>type d[`order_id];string "j"$d[`order_id];d[`order_id]]);d[`price];($[10h<>type d[`trade_id];string "j"$d[`trade_id];d[`trade_id]]);sideDict d[`side];d[`size];exchange);
+    newTrade:d`timestamp`sym`order_id`price`trade_id`side`size`exchange;
     .debug.gda.trade:newTrade;
     pub[`trade;newTrade];
 
