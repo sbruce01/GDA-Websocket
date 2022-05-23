@@ -24,6 +24,19 @@ gdaExchgTopic:([]
     topic:(`binance;`bybit;`coinbase);
     symbol:`BTCUSDT`BTCUSD`BTCUSD);
 
+//cast time in millis to timestamp
+millisToTS:{`timestamp$`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
+.time.trade.binance:{@[x;`timestamp;millisToTS]}; 
+.time.trade.coinbase:{@[x;`timestamp;"p"$"Z"$]}; 
+.time.trade.bybit:{@[x;`timestamp;millisToTS]};
+
+.time.order.binance:{@[x;`event_timestamp;millisToTS]}; 
+.time.order.coinbase:{.debug.x:x;
+                        $[-9h~type first x[`event_timestamp];
+                            @[x;`event_timestamp;millisToTS]; 
+                            @[x;`event_timestamp;"p"$"Z"$]]}; 
+.time.order.bybit:{@[x;`event_timestamp;millisToTS]}; 
+
 //create the ws subscription table
 hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:());
 //add all exchanges from gda
@@ -47,28 +60,18 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
         .gdaNormalised.subSym:first exec symbol from gdaExchgTopic where topic=.gdaNormalised.exchange;
         :()
     ];
-    
-    colVal: value d;
 
-    //set the receive timestamp as the time if the event timestamp is empty
-    d[`event_timestamp]: $[-1f~colVal[8];colVal[10];colVal[8]];
-    
+    //set the receive_timestamp as the time if the event_timestamp is null
+    if[(0=count d[`event_timestamp]) or any (-1f;0f)~\:d[`event_timestamp];d[`event_timestamp]:d[`receive_timestamp]];
+
+    //cast the time to timestamp type 
+    if[-12h<>type d[`event_timestamp];d:(key d)!first each value flip(.time.order[exchange])enlist d];
+  
     //check the orderID data type, convert it to string if it's an int orderID
-    orderIdCol:$[10h<>type colVal[2];string "j"$colVal[2];colVal[2]];
+    orderIdCol:$[10h<>type d[`order_id];string "j"$d[`order_id];d[`order_id]];
     
-    if[10h~type d[`event_timestamp];
-        /coinbase
-        newOrder:("p"$"Z"$d[`event_timestamp];.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange)
-    ];
-
-    if[-9h~type d[`event_timestamp];   
-        /bitfinex,bybit,ftx,huobi,kraken
-        /convert currentTimeMillis to timestamp
-        f:{`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
-        newOrder:($[1D<abs .z.p - t:("p"$f d[`event_timestamp]);.z.p;t];.gdaNormalised.subSym;orderIdCol;sideDict colVal[4];colVal[5];colVal[6];actionDict colVal[7];orderTypeDict colVal[11];exchange)
-    ];
-
     //publish to TP - order table
+    newOrder:(d[`event_timestamp];.gdaNormalised.subSym;orderIdCol;sideDict d[`side];d[`price];d[`size];actionDict d[`lob_action];orderTypeDict d[`order_type];exchange);
     .debug.newOrder:newOrder;
     pub[`order;newOrder];
 
@@ -80,7 +83,7 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
 .gdaTrades.upd:{[incoming;exchange]
     d:.j.k incoming;.debug.gda.dt:d; //0N!d;
     .debug.trdExchange:exchange;
-
+    
     //capture the subscription sym
     if[`event`topic~key d;
         .debug.subt:d;
@@ -89,21 +92,14 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
         :()
     ];
 
-    colVal: value d;
+    //add timestamp value if it is null
+    if[(0=count d[`timestamp]) or any (0f;-1f)~\:d[`timestamp];d[`timestamp]:.z.p];
 
-    if[10h~type d[`timestamp];
-        /coinbase
-        newTrade: ("p"$"Z"$d[`event_timestamp];.gdaTrades.subSym;($[10h<>type colVal[0];string "j"$colVal[0];colVal[0]]);colVal[1];($[10h<>type colVal[2];string "j"$colVal[2];colVal[2]]);sideDict colVal[4];colVal[5];exchange)
-    ];
- 
-    if[-9h~type d[`timestamp];   
-        /bitfinex,bybit,ftx,huobi,kraken,dydx
-        //convert currentTimeMillis to timestamp
-        f:{`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
-        newTrade: ($[1D<abs .z.p - t:"p"$f colVal[3];.z.p;t];.gdaTrades.subSym;($[10h<>type colVal[0];string "j"$colVal[0];colVal[0]]);colVal[1];($[10h<>type colVal[2];string "j"$colVal[2];colVal[2]]);sideDict colVal[4];colVal[5];exchange)
-    ];
-
+    //cast the time to timestamp type 
+    if[-12h<>type d[`timestamp]; d:(.time.trade[exchange])d];
+   
     //publish to TP - trade table
+    newTrade: (d[`timestamp];.gdaTrades.subSym;($[10h<>type d[`order_id];string "j"$d[`order_id];d[`order_id]]);d[`price];($[10h<>type d[`trade_id];string "j"$d[`trade_id];d[`trade_id]]);sideDict d[`side];d[`size];exchange);
     .debug.gda.trade:newTrade;
     pub[`trade;newTrade];
 
@@ -114,20 +110,18 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
 //bitmex trades callback function
 .bitmex.upd:{
     d:.j.k x;.debug.bitmex.d:d; //0N!d;
-      if[d[`table] like "trade";
-          $[d[`action] like "insert";
-              [.debug.bitmex.trade.i:d;
-                newTrade:select time:"p"$"Z"$timestamp,sym:sym:`$({$["" like bitmexSymbolDict x;x;bitmexSymbolDict x]} each symbol),orderID:" ",price,tradeID:trdMatchID,side:BuySellDict[side],"f"$size,exchange:`bitmex from d`data;
-                .debug.bitmex.newTrade:newTrade;
-                pub[`trade;newTrade];
-                //update record in the connection check table
-                upsert[`connChkTbl;(`bitmex;`trade;.z.p)]
-                ];
-            d[`action] like "partial";
-              .debug.bitmex.trade.p:d;
-              .debug.bitmex.trade.a:d;
-          ];
-        ]
+    if[not 99h~type d;:()];
+
+    $[d[`action] like "insert";
+        [.debug.bitmex.trade.i:d;
+        newTrade:select time:"p"$"Z"$timestamp,sym:`$({$["" like bitmexSymbolDict x;x;bitmexSymbolDict x]} each symbol),orderID:enlist" ","f"$price,tradeID:trdMatchID,side:BuySellDict[side],"f"$size,exchange:`bitmex from d`data;
+        .debug.bitmex.newTrade:newTrade;
+        pub[`trade;newTrade];
+        //update record in the connection check table
+        upsert[`connChkTbl;(`bitmex;`trade;.z.p)]
+        ];
+        :()
+    ];       
   };
 
 //establish the ws connection
