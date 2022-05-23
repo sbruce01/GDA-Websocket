@@ -9,12 +9,12 @@ runCommand:"l ",a:,[getenv`QHOME;"rest.q_"];
 .gda.restEnabled:0b;
 
 loadRestFunctionality:{
-  @[system;runCommand;{0N!x}];
+  system[x];
   .gda.restEnabled:1b;
   0N!"Successfully loaded in Rest";
  };
 
-@[loadRestFunctionality;`;{0N!"GDA Rest Failed to Load",x}];
+@[loadRestFunctionality;runCommand;{0N!"GDA Rest Failed to Load",x}];
 
 // Opening IPC handles to the RDB and HDB
 hdbHandle:hopen`$":",.z.x 0;
