@@ -83,7 +83,7 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
 .gdaTrades.upd:{[incoming;exchange]
     d:.j.k incoming;.debug.gda.dt:d; //0N!d;
     .debug.trdExchange:exchange;
-  
+    
     //capture the subscription sym
     if[`event`topic~key d;
         .debug.subt:d;

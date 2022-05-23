@@ -7,67 +7,79 @@ if[not "w"=first string .z.o;system "sleep 1"]
 
 if[not system"p";system"p 5112"]
 
-.agg.mapping:{x!y} . flip (
-    (`trade;(`.trade.vwap`.trade.ohlcv));
-    (`order;(enlist `.order.agg)));
-
 // define the realtime and recovery functions 
-upd_realtime:{0N!.debug.upd:(x;y);
-// why are lists arriving? Only xpect tables from the TP.
-    if[0=type y;0N!"SENT AS LIST";:()];
-    x upsert y; //insert incoming data
-    delete from x where time < .z.n-0D00:11:00.00000000;    // trim data to save on memory
-    .agg.mapping[x] @\: y
+
+upd_realtime:{
+    .debug.upd:(x;y);
+    if[x in key `.rte;
+        value[.rte x] @\: y
+        ];
     }
 
-upd_recovery:{ }
+upd_recovery:upd_realtime
 
-//.trade.lookback:5
-.trade.vwap:{
-    .my.x:x;
-    /0N!x;
-    tab:update 0f^vwap, 0f^accVol from (select latestVwap:size wavg price, latestAccVol: sum size by sym, time.minute, exchange from x) lj vwap;
-    res:select sym, minute, exchange, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol),accVol:(latestAccVol) from tab;
+// define callback functions for when a topic arrives
+.rte.trade.vwap:{
+    .debug.vwap:x;
+    res:update 0f^vwap, 0f^accVol from (select latestVwap:size wavg price, latestAccVol: sum size by sym, exchange, time:time.minute from x) lj vwap;
+    res:select sym, exchange, time, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol), accVol:accVol+latestAccVol from res;
     //update the vwaps table
     `vwap upsert res;
  }
 
-.trade.ohlcv:{
+.rte.trade.ohlcv:{
     .debug.ohlcv:x;
-    tab2:update 0N^open, 0f^high, 0N^low, 0f^close, 0f^volume from (select latestOpen:first price, latestHigh:max price, latestLow:min price, latestClose:last price, latestVolume:sum size by sym,time.minute, exchange from x) lj ohlcv;
-    tab2: update open: latestOpen from tab2 where open = 0N; 
-    res2:select sym, minute, exchange, open: open, high: max (latestHigh;high), low:min(0w ^latestLow;0w ^ low), close:latestClose, volume: sum(volume;latestVolume) from tab2;
-    `ohlcv upsert res2;
+    res:update 0N^open, 0f^high, 0N^low, 0f^close, 0f^volume from (select latestOpen:first price, latestHigh:max price, latestLow:min price, latestClose:last price, latestVolume:sum size by sym, exchange, time:time.minute from x) lj ohlcv;
+    res: update open: latestOpen from res where null open; 
+    res:select sym, exchange, time, open: open, high: max (latestHigh;high), low:min(0w ^latestLow;0w ^ low), close:latestClose, volume: sum(volume;latestVolume) from res;
+    `ohlcv upsert res;
   } 
+
+// Call back function for the order table
+.rte.order.agg:{.debug.x:x};
+
 pub_data:{[x]    
-    if[count to_send:select from x where minute =(exec max minute from x);
+    // find all records that are not the maximum per sym and exchange, publish and remove those rows
+    if[count to_send:select from x where time < (max;time) fby ([]sym;exchange);
         .u.pub[x;0!to_send];
-        delete from x where minute < (first exec max minute from x);
+        delete from x where time < (max;time) fby ([]sym;exchange);
     ];
   }
-.z.ts:{
-    pub_data each `ohlcv`vwap;
- }
- //1 minute timer
-\t 60000
-.order.agg:{.debug.x:x};
 
 / get the chained ticker plant port, default is 5110
 .u.x:.z.x,(count .z.x)_enlist":5000"
 tph:hopen`$":",.u.x 0
 .u.pub:{[t;x] neg[tph](`.u.upd;t;value flip x)}
 
-/ end of day: clear ONLY
-.u.end:{@[`.;.q.tables`.;@[;`sym;`g#]0#];}
+/ end of day: maintain the last x records for vwap and ohlcv tables
+.u.end:{@[`.;;-10000 sublist] each tables`.}
 
-/ init schema and sync up from log file
-.u.rep:{(.[;();:;].)each x;if[null first y;:()];-11!y;}
+/ connect to tickerplant or chained ticker plant to subscribe to ALL tables
+/(hopen`$":",.u.x 0)"(.u.sub[`;`];$[`m in key`.u;(`.u `m)\"`.u `i`L\";`.u `i`L])"
+trh:hopen`$":",.u.x 0;
+schemas:trh(`.u.sub;`;`);
 
-/ connect to tickerplant or chained ticker plant for (schema;(logcount;log))
-tp_data:(hopen`$":",.u.x 0)"(.u.sub[`;`];$[`m in key`.u;(`.u `m)\"`.u `i`L\";`.u `i`L])"
-{(.[;();:;].)each x} tp_data 0
-vwap:`sym`minute`exchange xkey vwap
-ohlcv:`sym`minute`exchange xkey ohlcv
+/ init schema from TP and sync up from log file
+/.u.rep:{(.[;();:;].)each x;if[null first y;:()];-11!y;}
+{(.[;();:;].)each x} schemas
+vwap:`sym`exchange`time xkey vwap
+ohlcv:`sym`exchange`time xkey ohlcv
+// get the log info, recover to that point, then swap to real time function
+tp_log_info:trh({$[`m in key`.u;(`.u `m)"`.u `i`L";`.u `i`L]};::)
 upd:upd_recovery
-{if[null first x;:()];-11!x;} tp_data 1
+{if[null first x;:()];-11!x;} tp_log_info
+// only keep the last records after recovery
+vwap:select from vwap where time = (max;time) fby ([]sym;exchange)
+ohlcv:select from ohlcv where time = (max;time) fby ([]sym;exchange)
+
+// unsubscribe to the vwap and ohlcv tables as they are not being used for any streaming calcs
+trh(`.u.del;`vwap`ohlcv;`);
+
+// set upd to be the realtime version
 upd:upd_realtime
+
+// Call the publish data record every 1 minute using the inbuilt timer
+.z.ts:{
+    pub_data each `ohlcv`vwap;
+ }
+\t 60000

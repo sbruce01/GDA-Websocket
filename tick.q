@@ -21,6 +21,8 @@
 
 /q tick.q SRC [DST] [-p 5010] [-o h]
 system"l tick/",(src:first .z.x,enlist"sym"),".q"
+.u.schemas:tables[]!value each tables[];
+.u.reset_schemas:{@[`.;x;:;.u.schemas x]};
 
 if[not system"p";system"p 5010"]
 
@@ -35,11 +37,23 @@ endofday:{end d;d+:1;if[l;hclose l;l::0(`.u.ld;d)]};
 ts:{if[d<x;if[d<x-1;system"t 0";'"more than one day?"];endofday[]]};
 
 if[system"t";
- .z.ts:{pub'[t;value each t];@[`.;t;@[;`sym;`g#]0#];i::j;ts .z.D};
+ .z.ts:{pub'[t;value each t];
+        if[l;
+            {l enlist (`upd;x;value x);j+:1;} each t
+            ];
+        /@[`.;t;@[;`sym;`g#]0#];
+        .u.reset_schemas each t;
+        i::j;ts .z.D};
+ 
  upd:{[t;x]
  .debug.batch:(t;x);
- if[not -16=type first first x;if[d<"d"$a:.z.P;.z.ts[]];a:"n"$a;x:$[0>type first x;a,x;(enlist(count first x)#a),x]];
- t insert x;if[l;l enlist (`upd;t;x);j+:1];}];
+ /if[not -16=type first first x;
+ if[d<"d"$a:.z.P;.z.ts[]];
+ /          a:"n"$a;x:$[0>type first x;a,x;(enlist(count first x)#a),x]
+ /         ];
+ t insert x;
+        }
+    ];
 
 if[not system"t";system"t 1000";
  .z.ts:{ts .z.D};
@@ -47,7 +61,7 @@ if[not system"t";system"t 1000";
  .debug.stream:(t;x);
  ts"d"$a:.z.P;
  /if[not -16=type first first x;a:"n"$a;x:$[0>type first x;a,x;(enlist(count first x)#a),x]];
- f:key flip value t;pub[t;$[0>type first x;enlist f!x;flip f!x]];if[l;l enlist (`upd;t;x);i+:1];}];
+ f:key flip value t;pub[t;x:$[0>type first x;enlist f!x;flip f!x]];if[l;l enlist (`upd;t;x);i+:1];}];
 
 \d .
 .u.tick[src;.z.x 1];

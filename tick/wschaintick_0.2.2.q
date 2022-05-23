@@ -24,6 +24,9 @@ if[not system"t";
 / connect to ticker plant for schema
 .wsu.init .wsu.rep(.wsu.m:hopen`$":",.wsu.x 0)".u.sub[`;`]"
 
+// Defining EOD function
+.u.end:{[x]}
+
 \
 /test
 >q tick.k
