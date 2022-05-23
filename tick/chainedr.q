@@ -52,7 +52,7 @@ tph:hopen`$":",.u.x 0
 .u.pub:{[t;x] neg[tph](`.u.upd;t;value flip x)}
 
 / end of day: maintain the last x records for vwap and ohlcv tables
-.u.end:{@[`.;.q.tables`.;@[;`sym;`g#] -100 sublist];}
+.u.end:{@[`.;;-10000 sublist] each tables`.}
 
 / connect to tickerplant or chained ticker plant to subscribe to ALL tables
 /(hopen`$":",.u.x 0)"(.u.sub[`;`];$[`m in key`.u;(`.u `m)\"`.u `i`L\";`.u `i`L])"
