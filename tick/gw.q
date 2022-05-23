@@ -41,9 +41,9 @@ if[.gda.restEnabled;
     hdb,rdb };
 
   / Alias namespace for convenience, typically once at beginning of file
-  .rest:.com_kx_rest
+  .rest:.com_kx_rest;
 
-  .rest.init enlist[`autoBind]!enlist[1b] / Initialize
+  .rest.init enlist[`autoBind]!enlist[1b]; / Initialize
   // Adding in the register
   .rest.register[`get;
     "/getData";
@@ -53,6 +53,6 @@ if[.gda.restEnabled;
       .rest.reg.data[`sd;-12h;0b;.z.p-00:00:10.000000000;"Start Date"],
           .rest.reg.data[`ed;-12h;0b;.z.p;"End Date"],
               .rest.reg.data[`ids;11h;0b;0#`;"Instruments to subscribe to"],
-                  .rest.reg.data[`exc;11h;0b;0#`;"Exchange to subscribe to"]]
+                  .rest.reg.data[`exc;11h;0b;0#`;"Exchange to subscribe to"]];
 
   ];
