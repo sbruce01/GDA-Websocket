@@ -14,6 +14,9 @@ upd:upsert;
 order: ([]`s#time:"p"$();`g#sym:`$();orderID:();side:`$();price:"f"$();size:"f"$();action:`$();orderType:`$();exchange:`$());
 trade: ([]`s#time:"p"$();`g#sym:`$();orderID:();price:"f"$();tradeID:();side:`$();size:"f"$();exchange:`$());
 connChkTbl:([exchange:`$();feed:`$()]`s#time:"p"$());
+rawbinance:([]raw:());
+rawbybit:([]raw:());
+rawcoinbase:([]raw:());
 
 BuySellDict:("Buy";"Sell")!(`bid;`ask);
 sideDict:0 1 2f!`unknown`bid`ask;
@@ -42,9 +45,11 @@ millisToTS:{`timestamp$`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
 
 //create the ws subscription table
 hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:());
-//add all exchanges from gda
+//add all normalised exchanges from gda
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"normalised");x;`order;`.gdaNormalised.updExchg)}each exec topic from gdaExchgTopic;
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"trades");x;`trade;`.gdaTrades.updExchg)}each exec topic from gdaExchgTopic;
+//add raw exchanges from gda
+`hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"raw");x;`raw;`.gdaRaw.updExchg)}each exec topic from gdaExchgTopic;
 //add BitMEX websocket 
 /`hostsToConnect upsert("wss://ws.bitmex.com/realtime";`op`args!("subscribe";"trade:XBTUSD");`bitmex;`trade;`.bitmex.upd);
 //add record ID
@@ -134,6 +139,17 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     ];       
   };
 
+.gdaRaw.upd:{[incoming;exchange]
+    .debug.raw:incoming;
+    .debug.rawExchange:exchange;
+    tableName:`$ssr[(string ` sv (`raw;exchange));".";""];
+    //publish to TP - raw exchange table
+    pub[tableName;(.z.p;`BTCUSD;enlist incoming)];
+    
+    //update record in the connection check table
+    upsert[`connChkTbl;(exchange;`raw;.z.p)];
+    };
+
 //establish the ws connection
 establishWS:{
     .debug.x:x;
@@ -148,6 +164,10 @@ establishWS:{
 
     if[request[`feed] like "trades";
         callbackFunc set .gdaTrades.upd[;request[`exchange]]
+    ];
+
+    if[request[`feed] like "raw";
+        callbackFunc set .gdaRaw.upd[;request[`exchange]]
     ];
 
     currentExchange:$[`op`exchange`feed~key request;string request[`exchange];string (` vs callbackFunc)[1]];
