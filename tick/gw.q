@@ -4,7 +4,7 @@
 if[not system"p";system"p 5005"]
 
 // Attempting to import the rest functionality
-runCommand:"l ",a:,[getenv`QHOME;"rest.q_"];
+$["/"=last getenv`QHOME;runCommand:"l ",a:,[getenv`QHOME;"rest.q_"];runCommand:"l ",a:,[getenv`QHOME;"/rest.q_"]];
 
 .gda.restEnabled:0b;
 
