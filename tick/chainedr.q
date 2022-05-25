@@ -21,7 +21,6 @@ upd_recovery:upd_realtime
 // define callback functions for when a topic arrives
 .rte.trade.vwap:{
     .debug.vwap:x;
-    0N!"Starting VWAP Calculations: Max time is ",string[exec max time from x];
     res:update 0f^vwap, 0f^accVol from (select latestVwap:size wavg price, latestAccVol: sum size by sym, exchange, time:time.minute from x) lj vwap;
     res:select sym, exchange, time, vwap:((accVol*vwap)+(latestAccVol*latestVwap))%(accVol+latestAccVol), accVol:accVol+latestAccVol from res;
     //update the vwaps table
