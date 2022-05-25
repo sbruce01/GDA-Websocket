@@ -80,7 +80,6 @@ upd:upd_realtime
 
 // Call the publish data record every 1 minute using the inbuilt timer
 .z.ts:{
-    0N!"Publishing Data (From Timer) at time: ",string[.z.p];
     pub_data each `ohlcv`vwap;
  }
 \t 60000
