@@ -44,9 +44,55 @@ curl 'localhost:5005/getData?sd=2022.05.20D04:42:40.000000000&ids=BTCUSD'
 
 
 
+## KX Websocket End point subscription
+Connect your websocket client to ws://localhost:5110
+
+A basic command is sent in the following format:
+```json
+{"type": "sub", "tables": `[<tableName>]`,"syms":`[<SubscriptionSymbol>]`}
+```
+
+You may subscribe to multiple tables at a time by sending an array of subscription table names.
+
+Please see examples in the ctp_ws.q 
+
 ## Implementation into AWS
 
-### Git
+### KxCloudEdition Steps
+
+Prerequisites: `curl`, `unzip`, `rlwrap`
+
+Pull down the package
+
+```console
+curl https://nexus.dl.kx.com/repository/kx-insights-packages/KxCloudEdition/3.0.0/KxCloudEdition-3.0.0.tgz --user sstantoncook -o KxCloudEdition-3.0.0.tgz
+```
+
+Unzip the package
+
+(The following is assuming a current directory of KxCloudEdition-* folder)
+
+Run the `qce-install.sh` file which sits in `./code/kdb`
+
+Add `../bin` to PATH and QHOME=`../lib/qce-YYYY.../` to aliases. Example of this being done in the ~/.bashrc script:
+
+```bash
+# Adding bin to Path for Q (KX Developer)
+export PATH="/data/KX_GDA/bin:$PATH"
+# Adding QHOME
+export QHOME=/data/KX_GDA/lib/qce-20220310180901
+```
+
+Add to the bin folder the file `q` with the definition:
+
+```bash
+export QHOME=/data/KX_GDA/lib/qce-20220310180901
+rlwrap $QHOME/l64/q $@
+```
+
+This explicit definition within the q script makes it easier for multiple users to call Q not just those who's profile is ~/.bashrc
+
+### Git Repository
 
 ```git
 git clone https://github.com/sbruce01/GDA-Websocket.git
@@ -67,13 +113,3 @@ source /path-to-install-dir/config/config.profile
 q /path-to-install-dir/launcher.q_
 ```
 7. Connect to developer using `IP`:`PORT`. N.B. `IP` will either be the Elastic IP Address or Private IP Address
-
-### KX Websocket End point subscription
-Connect your websocket client to ws://localhost:5110
-
-A basic command is sent in the following format:
-{"type": "sub", "tables": `[tableName]`,"syms":`[<SubscriptionSymbol>]`}
-
-You may subscribe to multiple tables at a time by sending an array of subscription table names.
-
-Please see examples in the ctp_ws.q 
