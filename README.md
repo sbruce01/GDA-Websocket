@@ -17,6 +17,8 @@ GDA Websocket Feed for cryptocurrencies
 
 ## REST API
 
+### Use
+
 The `GW` process hosts a REST API endpoint which enables users to query the RDB and HDB via GET requests. The endpoint sits at `/getData` which if called without filters returns orders data from all instruments and exchanges over the past minute. The included filters are:
 
 | Filter | Type            | Example                       | Available Values         |
@@ -26,6 +28,21 @@ The `GW` process hosts a REST API endpoint which enables users to query the RDB 
 | ed     | Atomic timestamp | 2022.05.20D06:16:42.000000000 | N/A                      |
 | ids    | Symbol list     | BTCUSD,ABC                    | BTCUSD, BTCUSDT          |
 | exc    | Symbol list     | coinbase,bybit                | coinbase, bybit, binance |
+
+### Implementation
+
+For the rest functionality, if you are only exposing an endpoint, the `.com_kx_rest.init`, `.com_kx_rest.register` and `.com_kx_rest.data` API are the only necessary APIs
+
+The documentation for each of these can be found [at this address](https://code.kx.com/insights/1.0/core/rest-server/api_reference.html)
+
+An example of setting up a register exists in a [whitepaper](https://code.kx.com/insights/1.0/core/rest-server/appendix/queryserver.html)
+
+Within our recent implementation there is a fairly straightforward example of creating a register. This is found in [this element of the Git Repo](https://github.com/sbruce01/GDA-Websocket/blob/main/tick/gw.q)
+
+The requirement for this is to load in the rest.q_ binary file which is included in KxCloudEdition after install within the lib folder:
+```
+lib/qce-20220310180901/rest.q_
+```
 
 ### Examples
 
