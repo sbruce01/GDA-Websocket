@@ -20,3 +20,11 @@ selectFuncAPI:{[tbl;sd;ed;ids;exc]
       ?[tbl;wClause;0b;()]];  // Select from the table applying the conditions of the where clause
   [res:$[.z.D within (`date$sd;`date$ed); ?[tbl;wClause;0b;()];0#value tbl]; // Otherwise, we are in the RDB, if the date is not todays date in the RDB return an empty table, otherwise apply filters
     `date xcols update date:.z.D from res]] };  // Create a date column if in the RDB so the schemas match
+
+getStats:{[date]
+    tableList:key ` sv (`:/data/KX_DATA/sym;`$string date);
+    res:raze {columns:a where not (a:key ` sv (`:/data/KX_DATA/sym;`$string y;x)) like "*#*" or "*.*";stats:{b:-21!hsym ` sv (`:/data/KX_DATA/sym;`$string date;y;x)}[;x] each columns;select sum compressedLength, sum uncompressedLength, x from stats}[;date]each tableList;
+    res:update date:date from res;
+    res:`table xcol `x`date`rowCount`uncompressedLength xcols update rowCount:(raze {?[x;();0b;enlist[`x]!enlist(#:;`i)]}each exec x from res)`x from res;
+    :update uncompressedLength%1000000, compressedLength%1000000, compressionRatio:uncompressedLength%compressedLength from res;
+    };
