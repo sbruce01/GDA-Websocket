@@ -24,12 +24,18 @@ selectFunc:{[tbl;sd;ed;ids;exc]
  };
 
 selectFuncAPI:{[tbl;sd;ed;ids;exc]
-  wClause:();
-  if[not all null ids;wClause,:enlist(in;`sym;enlist (),ids)];
-  if[not all null (sd;ed); wClause,:enlist(within;`time;(enlist;sd;ed))];
-  if[not all null exc; wClause,:enlist(in;`exchange;enlist (),exc)];
-  $[`date in cols tbl;
-  [wClause:(enlist(within;`date;(enlist;`sd.date;`ed.date))),wClause;
-      ?[tbl;wClause;0b;()]];
-  [res:$[.z.D within (`date$sd;`date$ed); ?[tbl;wClause;0b;()];0#value tbl];
-    `date xcols update date:.z.D from res]] };
+  wClause:(); // Initialize empty where clause
+  if[not all null ids;wClause,:enlist(in;`sym;enlist (),ids)];  // If we have a filter based on symbols add it to the where clause
+  $["u"~(meta tbl)[`time]`t;
+        $[`date in cols tbl;
+            if[not all null (sd;ed);wClause,:enlist(within;(+;`time;`date);(enlist;sd;ed))]; // If time is of minute type and we are in the hdb, add date to time
+            if[not all null (sd;ed);wClause,:enlist(within;(+;`time;.z.d);(enlist;sd;ed))] // If time is of minute type and we are in the rdb, add .z.d to time
+            ]; 
+        if[not all null (sd;ed);wClause,:enlist(within;`time;(enlist;sd;ed))] // Otherwise our time is of type timestamp, the logic of which works regardless
+    ];
+  if[not all null exc; wClause,:enlist(in;`exchange;enlist (),exc)]; // If we have a filter based on exchange add it to the where clause
+  $[`date in cols tbl;    // If we are in the HDB
+  [wClause:(enlist(within;`date;(enlist;`sd.date;`ed.date))),wClause; // Add date check to the where clause to select the date partition
+      ?[tbl;wClause;0b;()]];  // Select from the table applying the conditions of the where clause
+  [res:$[.z.D within (`date$sd;`date$ed); ?[tbl;wClause;0b;()];0#value tbl]; // Otherwise, we are in the RDB, if the date is not todays date in the RDB return an empty table, otherwise apply filters
+  `date xcols update date:.z.D from res]] }
