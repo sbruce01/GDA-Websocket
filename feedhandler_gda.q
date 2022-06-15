@@ -14,6 +14,7 @@ upd:upsert;
 order: ([]`s#time:"p"$();`g#sym:`$();orderID:();side:`$();price:"f"$();size:"f"$();action:`$();orderType:`$();exchange:`$());
 trade: ([]`s#time:"p"$();`g#sym:`$();orderID:();price:"f"$();tradeID:();side:`$();size:"f"$();exchange:`$());
 connChkTbl:([exchange:`$();feed:`$()]`s#time:"p"$());
+ethereum:([]block_num:`long$();block_hash:();block_timestamp:`long$();miner:();parent_hash:();num_transactions:`long$();timestamp:"p"$();tx_hash:();sender:();to:();gas:`long$();gas_price:`long$();val:`long$());
 rawbinance:([]raw:());
 rawbybit:([]raw:());
 rawcoinbase:([]raw:());
@@ -32,6 +33,7 @@ millisToTS:{`timestamp$`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
 .time.trade.binance:{@[x;`timestamp;millisToTS]}; 
 .time.trade.coinbase:{@[x;`timestamp;"p"$"Z"$]}; 
 .time.trade.bybit:{@[x;`timestamp;millisToTS]};
+.time.ethereum:{millisToTS x*1000};
 
 // Exchange specific Order mapping
 .order.binance:{update millisToTS event_timestamp from x};
@@ -50,6 +52,8 @@ hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:(
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"trades");x;`trade;`.gdaTrades.updExchg)}each exec topic from gdaExchgTopic;
 //add raw exchanges from gda
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"raw");x;`raw;`.gdaRaw.updExchg)}each exec topic from gdaExchgTopic;
+// Ethereum websocket
+`hostsToConnect upsert ("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";`ethereum;"raw");`ethereum;`raw;`.gdaRaw.updExchg); 
 //add BitMEX websocket 
 /`hostsToConnect upsert("wss://ws.bitmex.com/realtime";`op`args!("subscribe";"trade:XBTUSD");`bitmex;`trade;`.bitmex.upd);
 //add record ID
@@ -150,6 +154,38 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     upsert[`connChkTbl;(exchange;`raw;.z.p)];
     };
 
+.gdaRawEthereum.stringToHex:{"X"$2 cut 2_x};
+
+.gdaRawEthereum.upd:{[incoming;exchange]
+    .debug.rawEthereum:`incoming`exchange!(incoming;exchange);
+    data:.j.k incoming;
+    if[not `block_data in key data;.debug.start:data;:()];
+    data:data[`block_data],1_data;
+    data[`timestamp]:.time.ethereum data[`timestamp];
+    dataKeyReplace:first where (dataKey:key data) like "from";
+    dataKey[dataKeyReplace]:`sender;
+    dataKeyReplace:first where dataKey like "value";
+    dataKey[dataKeyReplace]:`val;
+    data:dataKey!value data;
+    toUpsert:update block_num:`long$block_num,
+                block_hash:enlist .gdaRawEthereum.stringToHex block_hash,
+                block_timestamp:`long$block_timestamp,
+                miner:enlist .gdaRawEthereum.stringToHex miner,
+                parent_hash:enlist .gdaRawEthereum.stringToHex parent_hash,
+                num_transactions:`long$num_transactions,
+                tx_hash:enlist .gdaRawEthereum.stringToHex tx_hash,
+                sender:enlist .gdaRawEthereum.stringToHex sender,
+                to:enlist .gdaRawEthereum.stringToHex to,
+                gas:`long$gas,
+                gas_price:`long$gas_price,
+                val:`long$val
+                from data;
+    toUpsert:toUpsert[dataKey];
+    .debug.toUpsert:toUpsert;
+    pub[`ethereum;toUpsert]
+    / `ethereum upsert toUpsert
+ }
+
 //establish the ws connection
 establishWS:{
     .debug.x:x;
@@ -166,8 +202,12 @@ establishWS:{
         callbackFunc set .gdaTrades.upd[;request[`exchange]]
     ];
 
-    if[request[`feed] like "raw";
+    if[(request[`feed] like "raw") and not request[`exchange] like "ethereum";
         callbackFunc set .gdaRaw.upd[;request[`exchange]]
+    ];
+
+    if[(request[`feed] like "raw") and request[`exchange] like "ethereum";
+        callbackFunc set .gdaRawEthereum.upd[;request[`exchange]]
     ];
 
     currentExchange:$[`op`exchange`feed~key request;string request[`exchange];string (` vs callbackFunc)[1]];
