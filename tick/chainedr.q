@@ -7,6 +7,28 @@ if[not "w"=first string .z.o;system "sleep 1"]
 
 if[not system"p";system"p 5112"]
 
+// Active Account Logic
+
+active_accounts:([]time:`timestamp$();sym:`$();activeAccountSenderCount:`long$(); activeAccountRecvCount:`long$());
+active_account_list:([sym:`$();address:();side:`$()]timestamp:`timestamp$());
+
+.rte.ethereum.accountCount:{[data]
+    .debug.accountCount:data;
+    current:count active_account_list;
+    `active_account_list upsert select last timestamp by sym:`ethereum, address:sender, side:`sender from data;
+    `active_account_list upsert select last timestamp by sym:`ethereum, address:to, side:`receiver from data;
+    delete from `active_account_list where timestamp < .z.p-1D;
+    if[current <> count active_account_list;
+        res:0!select activeAccountCount:count i by time:.z.p, sym, side from active_account_list;
+        recvCount:first exec activeAccountCount from res where side = `receiver;
+        sendCount:first exec activeAccountCount from res where side = `sender;
+        res:update activeAccountSenderCount:(count i)#sendCount, activeAccountRecvCount:(count i)#recvCount from res;
+        toUpsert:0!distinct delete side, activeAccountCount from res;
+        .u.pub[`active_accounts;toUpsert];
+        / `active_accounts upsert toUpsert;
+    ]
+ }
+
 // define the realtime and recovery functions 
 
 upd_realtime:{

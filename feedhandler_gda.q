@@ -168,19 +168,19 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     dataKey[dataKeyReplace]:`val;
     data:dataKey!value data;
     toUpsert:update block_num:`long$block_num,
-                block_hash:enlist .gdaRawEthereum.stringToHex block_hash,
+                block_hash:.gdaRawEthereum.stringToHex block_hash,
                 block_timestamp:`long$block_timestamp,
-                miner:enlist .gdaRawEthereum.stringToHex miner,
-                parent_hash:enlist .gdaRawEthereum.stringToHex parent_hash,
+                miner:.gdaRawEthereum.stringToHex miner,
+                parent_hash:.gdaRawEthereum.stringToHex parent_hash,
                 num_transactions:`long$num_transactions,
-                tx_hash:enlist .gdaRawEthereum.stringToHex tx_hash,
-                sender:enlist .gdaRawEthereum.stringToHex sender,
-                to:enlist .gdaRawEthereum.stringToHex to,
+                tx_hash:.gdaRawEthereum.stringToHex tx_hash,
+                sender:.gdaRawEthereum.stringToHex sender,
+                to:.gdaRawEthereum.stringToHex to,
                 gas:`long$gas,
                 gas_price:`long$gas_price,
                 val:`long$val
                 from data;
-    toUpsert:toUpsert[dataKey];
+    toUpsert:enlist toUpsert;
     .debug.toUpsert:toUpsert;
     pub[`ethereum;toUpsert]
     / `ethereum upsert toUpsert
