@@ -25,8 +25,8 @@ actionDict:0 1 2 3 4f!`unknown`skip`insert`remove`update;
 orderTypeDict:0 1 2f!`unknown`limitOrder`marketOrder;
 bitmexSymbolDict:(enlist"XBTUSD")!enlist("BTCUSD");
 gdaExchgTopic:([]
-    topic:(`binance;`bybit;`coinbase);
-    symbol:`BTCUSDT`BTCUSD`BTCUSD);
+    topic:(`binance;`bybit;`coinbase;`bitfinex;`deribit;`ftx;`huobi;`kraken;`kucoin;`okex;`phemex;`apollox;`dydx);
+    symbol:`BTCUSDT`BTCUSD`BTCUSD`tBTCUSD`BTCPERPETUAL`BTCUSD`BTCUSD`BTCUSD`BTCUSDT`BTCUSDT`sBTCUSDT`BTCUSDT`BTCUSD);
 
 //cast time in millis to timestamp
 millisToTS:{`timestamp$`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
@@ -39,11 +39,14 @@ millisToTS:{`timestamp$`datetime$(x%(prd 24 60 60 1000j))-(0-1970.01.01)};
 .order.binance:{update millisToTS event_timestamp from x};
 .order.bybit:{update millisToTS event_timestamp from x};
 .order.coinbase:{.debug.order.coinbase:x;update ?[-9h~type event_timestamp;millisToTS;"p"$"Z"$] event_timestamp from x};
+.order.:{update millisToTS event_timestamp from x};
 
 // Exchange specific Order mapping
 .trade.binance:{update millisToTS timestamp from x};
 .trade.bybit:{update millisToTS timestamp from x};
 .trade.coinbase:{.debug.trade.coinbase:x;update ?[-9h~type timestamp;millisToTS;"p"$"Z"$] timestamp from x};
+.trade.ftx:{.debug.trade.ftx:x;update ?[-9h~type timestamp;millisToTS;"p"$"Z"$] timestamp from x};
+.trade.:{update millisToTS timestamp from x};
 
 //create the ws subscription table
 hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:());
@@ -51,11 +54,9 @@ hostsToConnect:([]hostQuery:();request:();exchange:`$();feed:`$();callbackFunc:(
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"normalised");x;`order;`.gdaNormalised.updExchg)}each exec topic from gdaExchgTopic;
 `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"trades");x;`trade;`.gdaTrades.updExchg)}each exec topic from gdaExchgTopic;
 //add raw exchanges from gda
-`hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"raw");x;`raw;`.gdaRaw.updExchg)}each exec topic from gdaExchgTopic;
+/ `hostsToConnect upsert {("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";x;"raw");x;`raw;`.gdaRaw.updExchg)}each exec topic from gdaExchgTopic;
 // Ethereum websocket
 `hostsToConnect upsert ("ws://194.233.73.248:30205/";`op`exchange`feed!("subscribe";`ethereum;"raw");`ethereum;`raw;`.gdaRaw.updExchg); 
-//add BitMEX websocket 
-/`hostsToConnect upsert("wss://ws.bitmex.com/realtime";`op`args!("subscribe";"trade:XBTUSD");`bitmex;`trade;`.bitmex.upd);
 //add record ID
 hostsToConnect:update ws:1+til count i from hostsToConnect;
 hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from hostsToConnect where callbackFunc like "*gda*";
@@ -82,7 +83,7 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
                 orderTypeDict order_type from d;
 
     //perform Exchange specific mapping
-    d:.order[exchange] d;
+    d:$[exchange in key `.order;.order[exchange] d;.order[`] d];
 
     //publish to TP - order table
     newOrder:d`event_timestamp`sym`order_id`side`price`size`lob_action`order_type`exchange;
@@ -115,7 +116,7 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
                 from d;
     
     //perform Exchange specific mapping
-    d:$[-12h<>type d[`timestamp];.trade[exchange] d;d];
+    d:$[-12h<>type d[`timestamp];$[exchange in key `.trade;.trade[exchange] d;.trade[`] d];d];
    
     //publish to TP - trade table
     newTrade:d`timestamp`sym`order_id`price`trade_id`side`size`exchange;
