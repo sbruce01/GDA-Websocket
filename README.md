@@ -23,7 +23,7 @@ The `GW` process hosts a REST API endpoint which enables users to query the RDB 
 
 | Filter | Type            | Example                       | Available Values         |
 |--------|-----------------|-------------------------------|--------------------------|
-| tbls   | Atomic symbol   | order                         | order, trade             |
+| tbl   | Atomic symbol   | order                         | order, trade             |
 | sd     | Atomic timestamp | 2022.05.20D06:13:42.000000000 | N/A                      |
 | ed     | Atomic timestamp | 2022.05.20D06:16:42.000000000 | N/A                      |
 | ids    | Symbol list     | BTCUSD,ABC                    | BTCUSD, BTCUSDT          |
