@@ -36,6 +36,7 @@ q r.q localhost:5000 localhost:5002 -p 5008 > ${LOG_DIRECTORY}/rdb.log 2>&1 &
 q chainedr.q localhost:5000 -p 5112 > ${LOG_DIRECTORY}/chainedr.log 2>&1 &
 q wschaintick_0.2.2.q localhost:5000 -p 5110 -t 1000 > ${LOG_DIRECTORY}/wschaintick.log 2>&1 & 
 q gw.q localhost:5002 localhost:5008 -p 5005 > ${LOG_DIRECTORY}/gw.log 2>&1 &
+q eod_write.q localhost:5000 localhost:5002 -p 5555 > ${LOG_DIRECTORY}/eod_write.log 2>&1 &
 
 cd $BASE_DIRECTORY
 q feedhandler_gda.q -p 5111 > ${LOG_DIRECTORY}/feedhandler.log 2>&1 &
