@@ -41,5 +41,6 @@ requiredTables:(raze `order;`active_accounts`trade`ethereum`ohlcv`vwap);  // Tab
 .u.end:{[saveDate]
     .debug.end:saveDate;
     LOGFILE:(hopen `$":",.u.x 0)".u.L";
+    LOGFILE:` sv (-1_` vs LOGFILE),`$"sym",string[saveDate];
     {.lr.tables:y;{[toSet]toSet set .storedTables[toSet]}each y;.u.rep[x;z];![`.;();0b;y]}[LOGFILE;;saveDate] each requiredTables;
     .Q.chk[hsym `$HDBDIR]}
