@@ -33,7 +33,7 @@ system"l sym.q"; // Load in the Schema from TP
 \d .
 
 // Subscribe to TP so we receive .u.end (need to pass a table, chose a low frequency one so no needless IPC)
-(hopen `$":",.u.x 0)".u.add[`vwap;`]";
+(hopen `$":",.u.x 0)".u.sub[`vwap;`]";
 
 // Main()
 requiredTables:(raze `order;`active_accounts`trade`ethereum`ohlcv`vwap);  // Tables we want
