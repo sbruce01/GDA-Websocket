@@ -48,6 +48,5 @@ system"l sym.q"; // Load in the Schema from TP
 
 requiredTables:(raze `order;`active_accounts`trade`ethereum`ohlcv`vwap);  // Tables we want
 ![`.;();0b;raze requiredTables];  // Delete from top namespace
-
-{.lr.tables:y;y set .storedTables[y];.u.rep[x;z];![`.;();0b;enlist[y]]}[LOGFILE;;saveDate] each requiredTables;
+{.lr.tables:y;{[toSet]toSet set .storedTables[toSet]}each y;.u.rep[x;z];![`.;();0b;y]}[LOGFILE;;saveDate] each requiredTables;
 .Q.chk[hsym `$HDBDIR]
