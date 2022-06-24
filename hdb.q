@@ -29,7 +29,7 @@ selectFuncAPI:{[tbl;sd;ed;ids;exc]
 
 getStats:{[myDate]
     tableList:key ` sv (`:/data/KX_DATA/sym;`$string myDate);
-    res:raze {columns:a where not (a:key ` sv (`:/data/KX_DATA/sym;`$string y;x)) like "*#*" or "*.*";stats:{b:-21!hsym ` sv (`:/data/KX_DATA/sym;`$string myDate;y;x)}[;x] each columns;select sum compressedLength, sum uncompressedLength, x from stats}[;myDate]each tableList;
+    res:raze {columns:a where not (a:key ` sv (`:/data/KX_DATA/sym;`$string y;x)) like "*#*" or "*.*";stats:{b:-21!hsym ` sv (`:/data/KX_DATA/sym;`$string z;y;x)}[;x;y] each columns;select sum compressedLength, sum uncompressedLength, x from stats}[;myDate]each tableList;
     res:update date:myDate from res;
     res:`table xcol `x`date`rowCount`uncompressedLength xcols update rowCount:(raze {?[x;enlist(in;`date;y);0b;enlist[`x]!enlist(#:;`i)]}[;myDate]each exec x from res)`x from res;
     :update uncompressedLength%1000000, compressedLength%1000000, compressionRatio:uncompressedLength%compressedLength from res;
