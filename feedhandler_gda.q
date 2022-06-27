@@ -183,8 +183,9 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
                 from data;
     toUpsert:enlist toUpsert;
     .debug.toUpsert:toUpsert;
-    pub[`ethereum;toUpsert]
+    pub[`ethereum;toUpsert];
     / `ethereum upsert toUpsert
+    upsert[`connChkTbl;(exchange;`raw;.z.p)];
  }
 
 //establish the ws connection
