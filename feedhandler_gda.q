@@ -155,7 +155,7 @@ hostsToConnect:update callbackFunc:{` sv x} each `$string(callbackFunc,'ws) from
     upsert[`connChkTbl;(exchange;`raw;.z.p)];
     };
 
-.gdaRawEthereum.stringToHex:{$[10h~x;"X"$2 cut 2_x;string x]};
+.gdaRawEthereum.stringToHex:{$[10h~type x;"X"$2 cut 2_x;string x]};
 
 .gdaRawEthereum.upd:{[incoming;exchange]
     .debug.rawEthereum:`incoming`exchange!(incoming;exchange);
