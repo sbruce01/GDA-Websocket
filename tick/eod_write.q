@@ -33,7 +33,13 @@ system"l sym.q"; // Load in the Schema from TP
 \d .
 
 // Subscribe to TP so we receive .u.end (need to pass a table, chose a low frequency one so no needless IPC)
-(hopen `$":",.u.x 0)".u.sub[`vwap;`]";
+0N!"Connecting to TP";
+0N!"Number of handles are ",string[count .z.W];
+(hopen `$":",.u.x 0)".u.sub[`active_accounts;`]";
+/ (hopen `$":",.u.x 0)".u.sub[`;`]";
+0N!"Connected to TP";
+0N!"Number of handles are ",string[count .z.W];
+
 
 // Main()
 requiredTables:(raze `order;`active_accounts`trade`ethereum`ohlcv`vwap);  // Tables we want
