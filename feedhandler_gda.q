@@ -236,9 +236,18 @@ connectionCheck:{[]
     if[0<count reconnectList;
         feedList: exec feed from reconnectList;
         exchangeList: exec exchange from reconnectList;
-        hostToReconnect:select from hostsToConnect where feed in feedList,exchange in exchangeList;
-        {0N!x[0]," ",x[1]," WS Not connected!.. Reconnecting at ",string .z.z}each string (exec exchange from hostToReconnect),'(exec feed from hostToReconnect);
-        establishWS each hostToReconnect
+        // If trade or order is disconnected then reconnect everything
+        $[`order`trade in feedList;
+            [
+                .ws.closea[]
+                0N!"Order or Trade not coming through, reconnecting all websockets"
+                establishWS each hostsToConnect
+            ];
+            [
+                .ws.close[first exec h from .ws.w where callback like "*gdaRaw*"];
+                establishWS each select from hostsToConnect where exchange = `ethereum
+            ]
+        ];
     ];
     
     if[0~count reconnectList;
