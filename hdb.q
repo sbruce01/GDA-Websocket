@@ -18,7 +18,7 @@ selectFuncAPI:{[tbl;sd;ed;ids;exc]
             if[not all null (sd;ed);wClause,:enlist(within;(+;`time;`date);(enlist;sd;ed))]; // If time is of minute type and we are in the hdb, add date to time
             if[not all null (sd;ed);wClause,:enlist(within;(+;`time;.z.d);(enlist;sd;ed))] // If time is of minute type and we are in the rdb, add .z.d to time
             ]; 
-        if[not all null (sd;ed);wClause,:enlist(within;`time;(enlist;sd;ed))] // Otherwise our time is of type timestamp, the logic of which works regardless
+        if[not all null (sd;ed);$[not tbl~`ethereum;wClause,:enlist(within;`time;(enlist;sd;ed));wClause,:enlist(within;`timestamp;(enlist;sd;ed))]] // Otherwise our time is of type timestamp, the logic of which works regardless
     ];
     if[not all null exc; wClause,:enlist(in;`exchange;enlist (),exc)]; // If we have a filter based on exchange add it to the where clause
     $[`date in cols tbl;    // If we are in the HDB
@@ -49,7 +49,7 @@ getStats:{[myDate]
             if[not all null (sd;ed);wClause,:enlist(within;(+;`time;`date);(enlist;sd;ed))]; // If time is of minute type and we are in the hdb, add date to time
             if[not all null (sd;ed);wClause,:enlist(within;(+;`time;.z.d);(enlist;sd;ed))] // If time is of minute type and we are in the rdb, add .z.d to time
             ]; 
-        if[not all null (sd;ed);wClause,:enlist(within;`time;(enlist;sd;ed))] // Otherwise our time is of type timestamp, the logic of which works regardless
+        if[not all null (sd;ed);$[not tbl~`ethereum;wClause,:enlist(within;`time;(enlist;sd;ed));wClause,:enlist(within;`timestamp;(enlist;sd;ed))]] // Otherwise our time is of type timestamp, the logic of which works regardless
     ];
   if[not all null exc; wClause,:enlist(in;`exchange;enlist (),exc)]; // If we have a filter based on exchange add it to the where clause
   $[`date in cols tbl;    // If we are in the HDB
