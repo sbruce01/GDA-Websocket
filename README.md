@@ -82,7 +82,7 @@ Prerequisites: `curl`, `unzip`, `rlwrap`
 Pull down the package
 
 ```console
-curl https://nexus.dl.kx.com/repository/kx-insights-packages/KxCloudEdition/3.0.0/KxCloudEdition-3.0.0.tgz --user sstantoncook -o KxCloudEdition-3.0.0.tgz
+curl https://nexus.dl.kx.com/repository/kx-insights-packages/KxCloudEdition/3.0.0/KxCloudEdition-3.0.0.tgz --user <REDACTED> -o KxCloudEdition-3.0.0.tgz
 ```
 
 Unzip the package
